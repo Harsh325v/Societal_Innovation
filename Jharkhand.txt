@@ -1,0 +1,11 @@
+creds
+
+Role					Email				Password
+👤 Citizen				citizen_test@gmail.com		Test@12345
+
+🎓 University / HEI Admin		uni_test@gmail.com		Test@12345
+
+🏭 Industry Admin			industry_test@gmail.com		Test@12345
+
+🏛️ Government				govt_test@gmail.com		Test@12345
+
