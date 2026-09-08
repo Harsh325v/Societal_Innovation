@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -8,12 +8,16 @@ from app.core.security import SECRET_KEY, ALGORITHM
 from app.models.user import User, UserRole
 
 
-# looks for: Authorization: Bearer <token>
+# Looks for:
+# Authorization: Bearer <token>
 security = HTTPBearer()
 
 
 def get_db():
-    # get a connection to postgres
+    """
+    Create a database session for the request
+    and always close it afterwards.
+    """
     db = SessionLocal()
 
     try:
@@ -26,54 +30,115 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db),
 ):
-    # grab the actual token from the request
+    """
+    Validate the JWT token and return the corresponding user.
+    """
+
     token = credentials.credentials
 
     try:
-        # decode the token and make sure it's legit
+        # Decode and validate the JWT.
+        # jose will also validate the expiry if the token
+        # contains an exp claim.
         payload = jwt.decode(
             token,
             SECRET_KEY,
             algorithms=[ALGORITHM],
         )
 
-        # we put the user ID inside "sub" when creating the token
+        # User ID is stored inside "sub".
         user_id = payload.get("sub")
 
         if user_id is None:
             raise HTTPException(
-                status_code=401,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token",
+                headers={
+                    "WWW-Authenticate": "Bearer"
+                },
+            )
+
+        # Make sure sub is actually a valid integer.
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token",
+                headers={
+                    "WWW-Authenticate": "Bearer"
+                },
             )
 
     except JWTError:
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
 
-    # find the user in postgres
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    # Find the user in PostgreSQL.
+    user = (
+        db.query(User)
+        .filter(User.id == user_id)
+        .first()
+    )
 
     if user is None:
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
 
-    # give the actual user to whatever endpoint called this
     return user
 
 
 def require_role(*allowed_roles: UserRole):
-    # this creates a reusable role checker
+    """
+    Reusable role-based access checker.
+
+    Example:
+
+        current_user: User = Depends(
+            require_role(
+                UserRole.GOVERNMENT,
+                UserRole.SUPER_ADMIN,
+            )
+        )
+    """
+
     def role_checker(
         current_user: User = Depends(get_current_user),
     ):
-        # check if the user's role is allowed here
-        if current_user.role not in [role.value for role in allowed_roles]:
+        user_role = current_user.role
+
+        # Handle both:
+        #   UserRole.CITIZEN
+        # and
+        #   "CITIZEN"
+        #
+        # depending on how SQLAlchemy returns the value.
+        user_role_value = (
+            user_role.value
+            if isinstance(user_role, UserRole)
+            else str(user_role)
+        )
+
+        allowed_role_values = [
+            role.value
+            if isinstance(role, UserRole)
+            else str(role)
+            for role in allowed_roles
+        ]
+
+        if user_role_value not in allowed_role_values:
             raise HTTPException(
-                status_code=403,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have permission for this",
             )
 

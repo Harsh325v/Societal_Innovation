@@ -13,8 +13,13 @@ from app.api.project_proposals import router as proposal_router
 from app.api.projects import router as projects_router
 from app.api.project_members import router as project_members_router
 from app.api.project_milestones import router as milestone_router
+from app.api.project_tasks import router as project_tasks_router
 from app.api.industry_collaborations import router as industry_collaborations_router
 from app.api.government import router as government_router
+from app.api.project_impact import router as project_impact_router
+from app.api.project_deliverables import router as project_deliverables_router
+from app.api.chat import router as chat_router
+from app.api.scientist_reviews import router as scientist_reviews_router
 
 
 app = FastAPI(
@@ -52,10 +57,13 @@ app.include_router(proposal_router)
 app.include_router(projects_router)
 app.include_router(project_members_router)
 app.include_router(milestone_router)
+app.include_router(project_tasks_router)
 app.include_router(industry_collaborations_router)
 app.include_router(government_router)
-
-
+app.include_router(project_impact_router)
+app.include_router(project_deliverables_router)
+app.include_router(chat_router)
+app.include_router(scientist_reviews_router)
 
 
 @app.get("/")

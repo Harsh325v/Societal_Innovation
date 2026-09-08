@@ -31,7 +31,10 @@ def match_challenge_with_faculty(
     # find faculty who are available and have expertise in this domain
     expertise_entries = (
         db.query(FacultyExpertise)
-        .join(Faculty, Faculty.id == FacultyExpertise.faculty_id)
+        .join(
+            Faculty,
+            Faculty.id == FacultyExpertise.faculty_id,
+        )
         .filter(
             FacultyExpertise.domain_id == domain.id,
             Faculty.is_available == True,
@@ -51,12 +54,14 @@ def match_challenge_with_faculty(
         if faculty is None:
             continue
 
+        # get the faculty member's HEI
         hei = (
             db.query(HEI)
             .filter(HEI.id == faculty.hei_id)
             .first()
         )
 
+        # get the faculty department
         department = None
 
         if faculty.department_id:
@@ -68,14 +73,94 @@ def match_challenge_with_faculty(
                 .first()
             )
 
-        # expertise is stored from 1-5, convert it to a percentage
-        match_score = (entry.expertise_level / 5) * 100
+        # -----------------------------------------
+        # 1. EXPERTISE SCORE - 50%
+        # -----------------------------------------
 
-        # explain why this faculty member was recommended
+        expertise_score = (
+            entry.expertise_level / 5
+        ) * 100
+
+        # -----------------------------------------
+        # 2. LOCATION SCORE - 20%
+        # -----------------------------------------
+
+        if challenge.district and hei and hei.district:
+            if (
+                challenge.district.lower()
+                == hei.district.lower()
+            ):
+                location_score = 100
+            else:
+                location_score = 25
+        else:
+            location_score = 50
+
+        # -----------------------------------------
+        # 3. DEPARTMENT SCORE - 15%
+        # -----------------------------------------
+
+        # having a department means the faculty
+        # belongs to an organised academic area
+        if department:
+            department_score = 100
+        else:
+            department_score = 50
+
+        # -----------------------------------------
+        # 4. RESEARCH AREA SCORE - 15%
+        # -----------------------------------------
+
+        research_score = 0
+
+        if faculty.expertise:
+            research_text = faculty.expertise.lower()
+            category_text = challenge.category.lower()
+
+            # simple keyword check between the AI category
+            # and the faculty's research areas
+            if category_text in research_text:
+                research_score = 100
+            else:
+                research_score = 50
+
+        # -----------------------------------------
+        # FINAL SCORE
+        # -----------------------------------------
+
+        match_score = (
+            expertise_score * 0.50
+            + location_score * 0.20
+            + department_score * 0.15
+            + research_score * 0.15
+        )
+
+        # -----------------------------------------
+        # EXPLAIN THE MATCH
+        # -----------------------------------------
+
         reasons = [
             f"Expertise in {domain.name}",
             f"Expertise level: {entry.expertise_level}/5",
         ]
+
+        if challenge.district and hei and hei.district:
+            if (
+                challenge.district.lower()
+                == hei.district.lower()
+            ):
+                reasons.append(
+                    f"Same district: {hei.district}"
+                )
+            else:
+                reasons.append(
+                    f"HEI is located in {hei.district}"
+                )
+
+        if department:
+            reasons.append(
+                f"Department: {department.name}"
+            )
 
         if faculty.expertise:
             reasons.append(
@@ -100,7 +185,7 @@ def match_challenge_with_faculty(
             }
         )
 
-    # strongest faculty matches should appear first
+    # strongest faculty matches first
     matches.sort(
         key=lambda item: item["match_score"],
         reverse=True,
@@ -110,4 +195,5 @@ def match_challenge_with_faculty(
     for index, match in enumerate(matches, start=1):
         match["rank"] = index
 
+    # return top 10 faculty
     return matches[:10]

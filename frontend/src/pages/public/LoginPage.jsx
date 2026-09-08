@@ -34,6 +34,13 @@ const loginRoles = {
     password: 'Test@12345',
     dashboard: '/government/dashboard',
   },
+  scientist: {
+    label: 'Scientist',
+    role: 'SCIENTIST',
+    email: 'scientist_test@gmail.com',
+    password: 'Test@12345',
+    dashboard: '/scientist/dashboard',
+  },
 }
 
 export default function LoginPage() {

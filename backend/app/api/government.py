@@ -4,10 +4,12 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
 from app.core.database import SessionLocal
+
 from app.models.challenge import Challenge
 from app.models.hei import HEI
 from app.models.industry_collaboration import IndustryCollaboration
 from app.models.project import Project
+from app.models.project_impact import ProjectImpact
 from app.models.user import User, UserRole
 
 
@@ -18,28 +20,55 @@ router = APIRouter(
 
 
 def get_db():
-    # get a connection to postgres
+    """
+    Create a database session and close it afterwards.
+    """
     db = SessionLocal()
+
     try:
         yield db
     finally:
         db.close()
 
 
-@router.get("/dashboard")
-def get_government_dashboard(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    # only government and super admins can see this dashboard
-    if current_user.role not in {
+def get_role_value(user: User):
+    """
+    Return the user's role as a normal string.
+    """
+    if isinstance(user.role, UserRole):
+        return user.role.value
+
+    return str(user.role)
+
+
+def check_government_access(current_user: User):
+    """
+    Only Government and Super Admin users can access
+    government analytics and district information.
+    """
+
+    role = get_role_value(current_user)
+
+    if role not in {
         UserRole.GOVERNMENT.value,
         UserRole.SUPER_ADMIN.value,
     }:
         raise HTTPException(
             status_code=403,
-            detail="Only government users can access this dashboard",
+            detail="Only government users can access this data",
         )
+
+
+# ---------------------------------------------------------
+# GOVERNMENT DASHBOARD
+# ---------------------------------------------------------
+
+@router.get("/dashboard")
+def get_government_dashboard(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    check_government_access(current_user)
 
     # -------------------------
     # challenge statistics
@@ -67,7 +96,11 @@ def get_government_dashboard(
 
     active_projects = (
         db.query(Project)
-        .filter(Project.status == "ACTIVE")
+        .filter(
+            Project.status.notin_(
+                ["COMPLETED", "DEPLOYED"]
+            )
+        )
         .count()
     )
 
@@ -102,8 +135,13 @@ def get_government_dashboard(
             Project,
             Project.hei_id == HEI.id,
         )
-        .group_by(HEI.id, HEI.name)
-        .order_by(func.count(Project.id).desc())
+        .group_by(
+            HEI.id,
+            HEI.name,
+        )
+        .order_by(
+            func.count(Project.id).desc()
+        )
         .all()
     )
 
@@ -126,11 +164,17 @@ def get_government_dashboard(
         )
         .join(
             IndustryCollaboration,
-            IndustryCollaboration.industry_user_id == User.id,
+            IndustryCollaboration.industry_user_id
+            == User.id,
         )
-        .group_by(User.id, User.name)
+        .group_by(
+            User.id,
+            User.name,
+        )
         .order_by(
-            func.count(IndustryCollaboration.id).desc()
+            func.count(
+                IndustryCollaboration.id
+            ).desc()
         )
         .all()
     )
@@ -144,7 +188,9 @@ def get_government_dashboard(
     ]
 
     industry_partners = (
-        db.query(IndustryCollaboration.industry_user_id)
+        db.query(
+            IndustryCollaboration.industry_user_id
+        )
         .distinct()
         .count()
     )
@@ -159,7 +205,9 @@ def get_government_dashboard(
             func.count(Challenge.id),
         )
         .group_by(Challenge.category)
-        .order_by(func.count(Challenge.id).desc())
+        .order_by(
+            func.count(Challenge.id).desc()
+        )
         .all()
     )
 
@@ -193,7 +241,7 @@ def get_government_dashboard(
     ]
 
     # -------------------------
-    # project progress
+    # project lifecycle
     # -------------------------
 
     project_status_rows = (
@@ -217,7 +265,6 @@ def get_government_dashboard(
     # district challenge data
     # -------------------------
 
-    # count challenges for each district
     district_rows = (
         db.query(
             Challenge.district,
@@ -226,7 +273,9 @@ def get_government_dashboard(
         .filter(Challenge.district.isnot(None))
         .filter(Challenge.district != "")
         .group_by(Challenge.district)
-        .order_by(func.count(Challenge.id).desc())
+        .order_by(
+            func.count(Challenge.id).desc()
+        )
         .all()
     )
 
@@ -238,38 +287,253 @@ def get_government_dashboard(
         for district, count in district_rows
     ]
 
-    # count unique districts that have submitted challenges
-    districts_covered = (
-        db.query(Challenge.district)
-        .filter(Challenge.district.isnot(None))
-        .filter(Challenge.district != "")
-        .distinct()
-        .count()
+    # -------------------------
+    # real project impact
+    # -------------------------
+
+    impact_totals = (
+        db.query(
+            func.coalesce(
+                func.sum(
+                    ProjectImpact.people_benefited
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    ProjectImpact.villages_covered
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    ProjectImpact.districts_covered
+                ),
+                0,
+            ),
+            func.coalesce(
+                func.sum(
+                    ProjectImpact.cost_savings
+                ),
+                0,
+            ),
+        )
+        .first()
     )
+
+    people_benefited = int(impact_totals[0])
+    villages_covered = int(impact_totals[1])
+    impact_districts = int(impact_totals[2])
+    cost_savings = int(impact_totals[3])
+
+    # -------------------------
+    # funding
+    # -------------------------
+
+    total_funding = (
+        db.query(
+            func.coalesce(
+                func.sum(
+                    IndustryCollaboration.funding_amount
+                ),
+                0,
+            )
+        )
+        .scalar()
+    )
+
+    total_funding = int(total_funding or 0)
+
+    # -------------------------
+    # final government response
+    # -------------------------
 
     return {
         "stats": {
             "totalChallenges": total_challenges,
             "activeChallenges": active_challenges,
             "resolvedChallenges": resolved_challenges,
+            "totalProjects": total_projects,
             "activeProjects": active_projects,
+            "completedProjects": completed_projects,
             "universitiesParticipating": universities_participating,
             "industryPartners": industry_partners,
             "solutionsDeployed": deployed_projects,
-            "peopleBenefited": 0,
-            "totalProjects": total_projects,
-            "completedProjects": completed_projects,
+            "peopleBenefited": people_benefited,
+            "villagesCovered": villages_covered,
+            "districtsCovered": impact_districts,
+            "totalFunding": total_funding,
         },
+
         "domainData": challenges_by_domain,
+
         "statusData": challenges_by_status,
+
         "projectData": projects_by_status,
+
         "challengeDensity": challenge_density,
+
         "universityParticipation": university_participation,
+
         "industryParticipation": industry_participation,
+
         "impact": {
-            "peopleBenefited": 0,
+            "peopleBenefited": people_benefited,
+            "villagesCovered": villages_covered,
+            "districtsCovered": impact_districts,
             "projectsDeployed": deployed_projects,
             "problemsResolved": resolved_challenges,
-            "districtsCovered": districts_covered,
+            "costSavings": cost_savings,
         },
     }
+
+
+# ---------------------------------------------------------
+# DISTRICT OVERVIEW
+# ---------------------------------------------------------
+
+@router.get("/districts")
+def get_districts(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    check_government_access(current_user)
+
+    rows = (
+        db.query(
+            Challenge.district,
+            func.count(Challenge.id),
+        )
+        .filter(
+            Challenge.district.isnot(None)
+        )
+        .filter(
+            Challenge.district != ""
+        )
+        .group_by(
+            Challenge.district
+        )
+        .order_by(
+            Challenge.district
+        )
+        .all()
+    )
+
+    return [
+        {
+            "district": district,
+            "challenges": count,
+        }
+        for district, count in rows
+    ]
+
+
+# ---------------------------------------------------------
+# DISTRICT DETAILS
+# ---------------------------------------------------------
+
+@router.get("/districts/{district}")
+def get_district_details(
+    district: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    check_government_access(current_user)
+
+    district = district.strip()
+
+    if not district:
+        raise HTTPException(
+            status_code=400,
+            detail="District cannot be empty",
+        )
+
+    challenge_count = (
+        db.query(Challenge)
+        .filter(
+            Challenge.district.ilike(district)
+        )
+        .count()
+    )
+
+    project_count = (
+        db.query(Project)
+        .join(
+            Challenge,
+            Project.challenge_id
+            == Challenge.id,
+        )
+        .filter(
+            Challenge.district.ilike(district)
+        )
+        .count()
+    )
+
+    return {
+        "district": district,
+        "challenges": challenge_count,
+        "projects": project_count,
+    }
+
+
+# ---------------------------------------------------------
+# DISTRICT CHALLENGES
+# ---------------------------------------------------------
+
+@router.get("/districts/{district}/challenges")
+def get_district_challenges(
+    district: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    check_government_access(current_user)
+
+    district = district.strip()
+
+    if not district:
+        raise HTTPException(
+            status_code=400,
+            detail="District cannot be empty",
+        )
+
+    return (
+        db.query(Challenge)
+        .filter(
+            Challenge.district.ilike(district)
+        )
+        .all()
+    )
+
+
+# ---------------------------------------------------------
+# DISTRICT PROJECTS
+# ---------------------------------------------------------
+
+@router.get("/districts/{district}/projects")
+def get_district_projects(
+    district: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    check_government_access(current_user)
+
+    district = district.strip()
+
+    if not district:
+        raise HTTPException(
+            status_code=400,
+            detail="District cannot be empty",
+        )
+
+    return (
+        db.query(Project)
+        .join(
+            Challenge,
+            Project.challenge_id
+            == Challenge.id,
+        )
+        .filter(
+            Challenge.district.ilike(district)
+        )
+        .all()
+    )

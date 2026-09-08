@@ -3,13 +3,16 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
 from app.core.database import SessionLocal
+
 from app.models.industry_collaboration import IndustryCollaboration
 from app.models.project import Project
 from app.models.user import User, UserRole
+
 from app.schemas.industry_collaboration import (
     IndustryCollaborationCreate,
     IndustryCollaborationResponse,
 )
+
 
 router = APIRouter(
     prefix="/api/v1/industry-collaborations",
@@ -18,7 +21,9 @@ router = APIRouter(
 
 
 def get_db():
-    # get a connection to postgres
+    """
+    Create a database session and close it afterwards.
+    """
     db = SessionLocal()
 
     try:
@@ -26,6 +31,47 @@ def get_db():
     finally:
         db.close()
 
+
+# ---------------------------------------------------------
+# HELPERS
+# ---------------------------------------------------------
+
+def get_role_value(user: User):
+    """
+    Return the user's role as a normal string.
+    """
+    if isinstance(user.role, UserRole):
+        return user.role.value
+
+    return str(user.role)
+
+
+def get_project(
+    project_id: int,
+    db: Session,
+):
+    """
+    Find a project or return 404.
+    """
+
+    project = (
+        db.query(Project)
+        .filter(Project.id == project_id)
+        .first()
+    )
+
+    if project is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Project not found",
+        )
+
+    return project
+
+
+# ---------------------------------------------------------
+# CREATE COLLABORATION
+# ---------------------------------------------------------
 
 @router.post(
     "/project/{project_id}",
@@ -37,56 +83,93 @@ def create_collaboration(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # only industry users should be able to offer collaboration
-    if current_user.role != UserRole.INDUSTRY_ADMIN.value:
+    """
+    Industry users can offer support to a project.
+    """
+
+    role = get_role_value(current_user)
+
+    # Only industry users can make offers.
+    if role != UserRole.INDUSTRY_ADMIN.value:
         raise HTTPException(
             status_code=403,
             detail="Only industry users can offer collaboration",
         )
 
-    # make sure the project exists
-    project = (
-        db.query(Project)
-        .filter(Project.id == project_id)
-        .first()
+    project = get_project(
+        project_id,
+        db,
     )
 
-    if project is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Project not found",
-        )
+    # -----------------------------------------------------
+    # SUPPORT TYPE
+    # -----------------------------------------------------
 
-    # only allow our supported collaboration types
+    support_type = (
+        collaboration.support_type.strip().upper()
+    )
+
     allowed_types = {
         "FUNDING",
         "MENTORSHIP",
         "PROTOTYPING",
         "TESTING",
         "PILOT",
+        "DEPLOYMENT",
     }
-
-    support_type = collaboration.support_type.upper()
 
     if support_type not in allowed_types:
         raise HTTPException(
             status_code=400,
-            detail="Invalid collaboration support type",
+            detail=(
+                "Invalid collaboration support type. "
+                "Allowed types: "
+                "FUNDING, MENTORSHIP, PROTOTYPING, "
+                "TESTING, PILOT, DEPLOYMENT"
+            ),
         )
 
-    # funding amount only makes sense for funding offers
-    if support_type == "FUNDING" and collaboration.funding_amount is None:
+    # -----------------------------------------------------
+    # FUNDING VALIDATION
+    # -----------------------------------------------------
+
+    if support_type == "FUNDING":
+
+        if collaboration.funding_amount is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Funding amount is required for funding support",
+            )
+
+        if collaboration.funding_amount <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Funding amount must be greater than zero",
+            )
+
+    elif (
+        collaboration.funding_amount is not None
+        and collaboration.funding_amount < 0
+    ):
         raise HTTPException(
             status_code=400,
-            detail="Funding amount is required for funding support",
+            detail="Funding amount cannot be negative",
         )
 
+    # -----------------------------------------------------
+    # CREATE OFFER
+    # -----------------------------------------------------
+
     new_collaboration = IndustryCollaboration(
-        project_id=project_id,
+        project_id=project.id,
         industry_user_id=current_user.id,
         support_type=support_type,
         funding_amount=collaboration.funding_amount,
-        description=collaboration.description,
+        description=(
+            collaboration.description.strip()
+            if collaboration.description
+            else None
+        ),
     )
 
     db.add(new_collaboration)
@@ -95,6 +178,10 @@ def create_collaboration(
 
     return new_collaboration
 
+
+# ---------------------------------------------------------
+# GET PROJECT COLLABORATIONS
+# ---------------------------------------------------------
 
 @router.get(
     "/project/{project_id}",
@@ -105,39 +192,51 @@ def get_project_collaborations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # only authorised users should see collaboration offers
-    if current_user.role not in [
+    """
+    Get collaboration offers for a project.
+
+    HEI users:
+        Only their own HEI's projects.
+
+    Students:
+        Only projects belonging to their HEI.
+
+    Industry / Government / Super Admin:
+        Can discover collaboration information.
+    """
+
+    role = get_role_value(current_user)
+
+    allowed_roles = {
         UserRole.HEI_ADMIN.value,
         UserRole.FACULTY.value,
         UserRole.STUDENT.value,
         UserRole.INDUSTRY_ADMIN.value,
         UserRole.GOVERNMENT.value,
         UserRole.SUPER_ADMIN.value,
-    ]:
+    }
+
+    if role not in allowed_roles:
         raise HTTPException(
             status_code=403,
             detail="You don't have permission to view collaborations",
         )
 
-    # make sure the project exists
-    project = (
-        db.query(Project)
-        .filter(Project.id == project_id)
-        .first()
+    project = get_project(
+        project_id,
+        db,
     )
 
-    if project is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Project not found",
-        )
+    # -----------------------------------------------------
+    # UNIVERSITY SIDE
+    # -----------------------------------------------------
 
-    # university users can only see collaborations for their own HEI
-    if current_user.role in [
+    if role in {
         UserRole.HEI_ADMIN.value,
         UserRole.FACULTY.value,
         UserRole.STUDENT.value,
-    ]:
+    }:
+
         if current_user.hei_id is None:
             raise HTTPException(
                 status_code=403,
@@ -147,19 +246,32 @@ def get_project_collaborations(
         if project.hei_id != current_user.hei_id:
             raise HTTPException(
                 status_code=403,
-                detail="You can only view collaborations for your own HEI projects",
+                detail=(
+                    "You can only view collaborations "
+                    "for your own HEI projects"
+                ),
             )
 
-    # return all collaboration offers for this project
+    # -----------------------------------------------------
+    # RETURN OFFERS
+    # -----------------------------------------------------
+
     return (
         db.query(IndustryCollaboration)
         .filter(
-            IndustryCollaboration.project_id == project_id
+            IndustryCollaboration.project_id
+            == project_id
         )
-        .order_by(IndustryCollaboration.created_at.desc())
+        .order_by(
+            IndustryCollaboration.created_at.desc()
+        )
         .all()
     )
 
+
+# ---------------------------------------------------------
+# UPDATE COLLABORATION STATUS
+# ---------------------------------------------------------
 
 @router.patch(
     "/{collaboration_id}/status",
@@ -171,27 +283,50 @@ def update_collaboration_status(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # only the HEI/project side should accept or reject offers
-    if current_user.role not in {
+    """
+    Accept, reject or update an industry collaboration.
+
+    Only:
+        HEI_ADMIN
+        FACULTY
+
+    from the project's own HEI can do this.
+    """
+
+    role = get_role_value(current_user)
+
+    # -----------------------------------------------------
+    # ROLE CHECK
+    # -----------------------------------------------------
+
+    if role not in {
         UserRole.HEI_ADMIN.value,
         UserRole.FACULTY.value,
     }:
         raise HTTPException(
             status_code=403,
-            detail="Only HEI users can update collaboration status",
+            detail=(
+                "Only HEI users can update "
+                "collaboration status"
+            ),
         )
 
-    # HEI users must belong to an HEI
     if current_user.hei_id is None:
         raise HTTPException(
             status_code=403,
             detail="Your account is not linked to an HEI",
         )
 
-    # find the collaboration offer
+    # -----------------------------------------------------
+    # FIND COLLABORATION
+    # -----------------------------------------------------
+
     collaboration = (
         db.query(IndustryCollaboration)
-        .filter(IndustryCollaboration.id == collaboration_id)
+        .filter(
+            IndustryCollaboration.id
+            == collaboration_id
+        )
         .first()
     )
 
@@ -201,39 +336,56 @@ def update_collaboration_status(
             detail="Collaboration not found",
         )
 
-    # find the project this collaboration belongs to
-    project = (
-        db.query(Project)
-        .filter(Project.id == collaboration.project_id)
-        .first()
+    # -----------------------------------------------------
+    # FIND PROJECT
+    # -----------------------------------------------------
+
+    project = get_project(
+        collaboration.project_id,
+        db,
     )
 
-    if project is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Project not found",
-        )
+    # -----------------------------------------------------
+    # HEI OWNERSHIP CHECK
+    # -----------------------------------------------------
 
-    # only users from the project's HEI can accept/reject offers
     if project.hei_id != current_user.hei_id:
         raise HTTPException(
             status_code=403,
-            detail="You can only manage collaborations for your own HEI projects",
+            detail=(
+                "You can only manage collaborations "
+                "for your own HEI projects"
+            ),
         )
+
+    # -----------------------------------------------------
+    # STATUS VALIDATION
+    # -----------------------------------------------------
+
+    status = status.strip().upper()
 
     allowed_statuses = {
         "PENDING",
         "ACCEPTED",
+        "IN_PROGRESS",
+        "COMPLETED",
         "REJECTED",
     }
-
-    status = status.upper()
 
     if status not in allowed_statuses:
         raise HTTPException(
             status_code=400,
-            detail="Invalid collaboration status",
+            detail=(
+                "Invalid collaboration status. "
+                "Allowed statuses: "
+                "PENDING, ACCEPTED, IN_PROGRESS, "
+                "COMPLETED, REJECTED"
+            ),
         )
+
+    # -----------------------------------------------------
+    # UPDATE
+    # -----------------------------------------------------
 
     collaboration.status = status
 

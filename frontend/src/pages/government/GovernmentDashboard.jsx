@@ -9,6 +9,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  Legend,
 } from 'recharts'
 
 import Card from '../../components/common/Card'
@@ -20,6 +21,8 @@ import {
   MapPinned,
   ShieldCheck,
   Users,
+  IndianRupee,
+  TreePine,
 } from 'lucide-react'
 
 import api from '../../services/api'
@@ -30,20 +33,73 @@ const COLORS = [
   '#14b8a6',
   '#f59e0b',
   '#a78bfa',
+  '#ef4444',
+  '#6366f1',
+  '#10b981',
+]
+
+const LIFECYCLE_ORDER = [
+  'PROPOSAL',
+  'APPROVED',
+  'RESEARCH',
+  'PROTOTYPE',
+  'TESTING',
+  'PILOT',
+  'DEPLOYED',
+  'COMPLETED',
 ]
 
 export default function GovernmentDashboard() {
   const [dashboard, setDashboard] = useState(null)
+  const [districtProjects, setDistrictProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        // get the real government dashboard data from postgres
+        // Main government dashboard
         const response = await api.get('/government/dashboard')
 
         setDashboard(response.data)
+
+        // Load district information
+        try {
+          const districtResponse = await api.get('/government/districts')
+
+          const districts = districtResponse.data || []
+
+          const projectResults = await Promise.all(
+            districts.map(async (district) => {
+              try {
+                const detailResponse = await api.get(
+                  `/government/districts/${encodeURIComponent(
+                    district.district
+                  )}`
+                )
+
+                return {
+                  district: district.district,
+                  challenges: district.challenges || 0,
+                  projects: detailResponse.data.projects || 0,
+                }
+              } catch {
+                return {
+                  district: district.district,
+                  challenges: district.challenges || 0,
+                  projects: 0,
+                }
+              }
+            })
+          )
+
+          setDistrictProjects(projectResults)
+        } catch (districtError) {
+          console.error(
+            'Could not load district data:',
+            districtError
+          )
+        }
       } catch (err) {
         console.error(err)
 
@@ -81,14 +137,11 @@ export default function GovernmentDashboard() {
     return null
   }
 
-  const stats = dashboard.stats
+  const stats = dashboard.stats || {}
 
   const domainData = dashboard.domainData || []
   const statusData = dashboard.statusData || []
-  const projectData = dashboard.projectData || []
-
-  const challengeDensity =
-    dashboard.challengeDensity || []
+  const rawProjectData = dashboard.projectData || []
 
   const universityParticipation =
     dashboard.universityParticipation || []
@@ -98,10 +151,42 @@ export default function GovernmentDashboard() {
 
   const impact = dashboard.impact || {}
 
+  /*
+   * Backend sends district data as:
+   *
+   * {
+   *   district: "Ranchi",
+   *   challenges: 1
+   * }
+   *
+   * Recharts needs the actual property name.
+   */
+  const challengeDensity = (
+    dashboard.challengeDensity || []
+  ).map((item) => ({
+    ...item,
+    value: item.challenges || 0,
+  }))
+
+  /*
+   * Make sure every lifecycle stage appears,
+   * even if its count is 0.
+   */
+  const projectData = LIFECYCLE_ORDER.map((status) => {
+    const found = rawProjectData.find(
+      (item) => item.name === status
+    )
+
+    return {
+      name: status,
+      value: found?.value || 0,
+    }
+  })
+
   return (
     <div className="space-y-6">
 
-      {/* page heading */}
+      {/* PAGE HEADING */}
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
           Government overview
@@ -110,75 +195,137 @@ export default function GovernmentDashboard() {
         <h1 className="mt-2 text-3xl font-bold text-slate-900">
           Social innovation intelligence
         </h1>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Monitor challenges, projects, collaboration and
+          real-world social impact across Jharkhand.
+        </p>
       </div>
 
-      {/* challenge and project statistics */}
+      {/* BASIC STATISTICS */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
         <StatCard
           icon={CircleDashed}
           label="Total challenges"
-          value={stats.totalChallenges}
+          value={stats.totalChallenges || 0}
           accent="slate"
         />
 
         <StatCard
           icon={ShieldCheck}
           label="Active challenges"
-          value={stats.activeChallenges}
+          value={stats.activeChallenges || 0}
           accent="cyan"
         />
 
         <StatCard
           icon={Users}
           label="Resolved challenges"
-          value={stats.resolvedChallenges}
+          value={stats.resolvedChallenges || 0}
           accent="emerald"
         />
 
         <StatCard
           icon={Building2}
           label="Active projects"
-          value={stats.activeProjects}
+          value={stats.activeProjects || 0}
           accent="violet"
         />
 
       </div>
 
-      {/* participation statistics */}
+      {/* PARTICIPATION + DEPLOYMENT */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
         <StatCard
           icon={Users}
           label="Universities participating"
-          value={stats.universitiesParticipating}
+          value={stats.universitiesParticipating || 0}
           accent="slate"
         />
 
         <StatCard
           icon={Building2}
           label="Industry partners"
-          value={stats.industryPartners}
+          value={stats.industryPartners || 0}
           accent="cyan"
         />
 
         <StatCard
           icon={BarChart3}
           label="Solutions deployed"
-          value={stats.solutionsDeployed}
+          value={stats.solutionsDeployed || 0}
           accent="emerald"
         />
 
         <StatCard
-          icon={MapPinned}
+          icon={Users}
           label="People benefited"
-          value={stats.peopleBenefited.toLocaleString()}
+          value={(stats.peopleBenefited || 0).toLocaleString()}
           accent="violet"
         />
 
       </div>
 
-      {/* challenges section */}
+      {/* REAL IMPACT STATISTICS */}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+        <StatCard
+          icon={Users}
+          label="People benefited"
+          value={(impact.peopleBenefited || 0).toLocaleString()}
+          accent="emerald"
+        />
+
+        <StatCard
+          icon={TreePine}
+          label="Villages covered"
+          value={(impact.villagesCovered || 0).toLocaleString()}
+          accent="cyan"
+        />
+
+        <StatCard
+          icon={MapPinned}
+          label="Districts covered"
+          value={impact.districtsCovered || 0}
+          accent="violet"
+        />
+
+        <StatCard
+          icon={IndianRupee}
+          label="Cost savings"
+          value={`₹${(impact.costSavings || 0).toLocaleString()}`}
+          accent="slate"
+        />
+
+      </div>
+
+      {/* FUNDING */}
+      <Card title="Industry funding">
+
+        <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-5">
+
+          <div>
+            <p className="text-sm text-slate-500">
+              Total funding contributed through industry
+              collaborations
+            </p>
+
+            <p className="mt-2 text-3xl font-bold text-slate-900">
+              ₹{(stats.totalFunding || 0).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <IndianRupee className="h-7 w-7 text-slate-700" />
+          </div>
+
+        </div>
+
+      </Card>
+
+      {/* CHALLENGES BY DOMAIN + DISTRICT */}
       <div
         id="challenges"
         className="grid gap-6 xl:grid-cols-2 scroll-mt-6"
@@ -202,6 +349,7 @@ export default function GovernmentDashboard() {
                   <Pie
                     data={domainData}
                     dataKey="value"
+                    nameKey="name"
                     innerRadius={50}
                     outerRadius={90}
                     paddingAngle={3}
@@ -210,15 +358,15 @@ export default function GovernmentDashboard() {
                       <Cell
                         key={entry.name}
                         fill={
-                          COLORS[
-                            index % COLORS.length
-                          ]
+                          COLORS[index % COLORS.length]
                         }
                       />
                     ))}
                   </Pie>
 
                   <Tooltip />
+
+                  <Legend />
 
                 </PieChart>
               </ResponsiveContainer>
@@ -236,7 +384,8 @@ export default function GovernmentDashboard() {
 
             {challengeDensity.length === 0 ? (
               <div className="flex h-72 items-center justify-center text-sm text-slate-500">
-                District data will appear once challenge locations are tracked.
+                District data will appear once challenge
+                locations are tracked.
               </div>
             ) : (
               <div className="h-72">
@@ -249,12 +398,13 @@ export default function GovernmentDashboard() {
 
                     <XAxis dataKey="district" />
 
-                    <YAxis />
+                    <YAxis allowDecimals={false} />
 
                     <Tooltip />
 
                     <Bar
                       dataKey="value"
+                      name="Challenges"
                       fill="#0f172a"
                       radius={[8, 8, 0, 0]}
                     />
@@ -270,7 +420,53 @@ export default function GovernmentDashboard() {
 
       </div>
 
-      {/* challenge status and project progress */}
+      {/* PROJECTS BY DISTRICT */}
+      <Card title="Projects by district">
+
+        {districtProjects.length === 0 ? (
+          <div className="flex h-40 items-center justify-center text-sm text-slate-500">
+            No district project data available yet.
+          </div>
+        ) : (
+          <div className="h-72">
+
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+              <BarChart data={districtProjects}>
+
+                <XAxis dataKey="district" />
+
+                <YAxis allowDecimals={false} />
+
+                <Tooltip />
+
+                <Legend />
+
+                <Bar
+                  dataKey="challenges"
+                  name="Challenges"
+                  fill="#2563eb"
+                  radius={[8, 8, 0, 0]}
+                />
+
+                <Bar
+                  dataKey="projects"
+                  name="Projects"
+                  fill="#14b8a6"
+                  radius={[8, 8, 0, 0]}
+                />
+
+              </BarChart>
+            </ResponsiveContainer>
+
+          </div>
+        )}
+
+      </Card>
+
+      {/* CHALLENGE STATUS + PROJECT LIFECYCLE */}
       <div className="grid gap-6 xl:grid-cols-2">
 
         <Card title="Challenge status">
@@ -290,12 +486,13 @@ export default function GovernmentDashboard() {
 
                   <XAxis dataKey="name" />
 
-                  <YAxis />
+                  <YAxis allowDecimals={false} />
 
                   <Tooltip />
 
                   <Bar
                     dataKey="value"
+                    name="Challenges"
                     fill="#2563eb"
                     radius={[8, 8, 0, 0]}
                   />
@@ -308,44 +505,72 @@ export default function GovernmentDashboard() {
 
         </Card>
 
-        <Card title="Project progress">
+        <Card title="Project lifecycle">
 
-          {projectData.length === 0 ? (
-            <div className="flex h-72 items-center justify-center text-sm text-slate-500">
-              No project data available yet.
-            </div>
-          ) : (
-            <div className="h-72">
+          <div className="h-72">
 
-              <ResponsiveContainer
-                width="100%"
-                height="100%"
-              >
-                <BarChart data={projectData}>
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+            >
+              <BarChart data={projectData}>
 
-                  <XAxis dataKey="name" />
+                <XAxis
+                  dataKey="name"
+                  angle={-25}
+                  textAnchor="end"
+                  height={70}
+                  interval={0}
+                  fontSize={11}
+                />
 
-                  <YAxis />
+                <YAxis allowDecimals={false} />
 
-                  <Tooltip />
+                <Tooltip />
 
-                  <Bar
-                    dataKey="value"
-                    fill="#14b8a6"
-                    radius={[8, 8, 0, 0]}
-                  />
+                <Bar
+                  dataKey="value"
+                  name="Projects"
+                  fill="#14b8a6"
+                  radius={[8, 8, 0, 0]}
+                />
 
-                </BarChart>
-              </ResponsiveContainer>
+              </BarChart>
+            </ResponsiveContainer>
 
-            </div>
-          )}
+          </div>
 
         </Card>
 
       </div>
 
-      {/* university and industry participation */}
+      {/* LIFECYCLE SUMMARY */}
+      <Card title="Project lifecycle summary">
+
+        <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
+
+          {projectData.map((item) => (
+            <div
+              key={item.name}
+              className="rounded-2xl bg-slate-50 p-4 text-center"
+            >
+
+              <p className="text-xs font-medium text-slate-500">
+                {item.name}
+              </p>
+
+              <p className="mt-2 text-2xl font-bold text-slate-900">
+                {item.value}
+              </p>
+
+            </div>
+          ))}
+
+        </div>
+
+      </Card>
+
+      {/* UNIVERSITY + INDUSTRY PARTICIPATION */}
       <div className="grid gap-6 lg:grid-cols-2">
 
         <Card title="University participation">
@@ -412,61 +637,63 @@ export default function GovernmentDashboard() {
 
       </div>
 
-      {/* social impact */}
+      {/* SOCIAL IMPACT */}
       <div
         id="impact"
         className="scroll-mt-6"
       >
         <Card title="Social impact">
 
-          <div className="grid gap-4 md:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
 
             <div className="rounded-2xl bg-slate-50 p-4">
-
               <div className="text-sm text-slate-500">
                 People benefited
               </div>
 
               <div className="mt-2 text-2xl font-bold text-slate-900">
-                {impact.peopleBenefited.toLocaleString()}
+                {(impact.peopleBenefited || 0).toLocaleString()}
               </div>
-
             </div>
 
             <div className="rounded-2xl bg-slate-50 p-4">
-
               <div className="text-sm text-slate-500">
-                Projects deployed
+                Villages covered
               </div>
 
               <div className="mt-2 text-2xl font-bold text-slate-900">
-                {impact.projectsDeployed}
+                {(impact.villagesCovered || 0).toLocaleString()}
               </div>
-
             </div>
 
             <div className="rounded-2xl bg-slate-50 p-4">
-
-              <div className="text-sm text-slate-500">
-                Problems resolved
-              </div>
-
-              <div className="mt-2 text-2xl font-bold text-slate-900">
-                {impact.problemsResolved}
-              </div>
-
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-4">
-
               <div className="text-sm text-slate-500">
                 Districts covered
               </div>
 
               <div className="mt-2 text-2xl font-bold text-slate-900">
-                {impact.districtsCovered}
+                {impact.districtsCovered || 0}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="text-sm text-slate-500">
+                Projects deployed
               </div>
 
+              <div className="mt-2 text-2xl font-bold text-slate-900">
+                {impact.projectsDeployed || 0}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-slate-50 p-4">
+              <div className="text-sm text-slate-500">
+                Cost savings
+              </div>
+
+              <div className="mt-2 text-2xl font-bold text-slate-900">
+                ₹{(impact.costSavings || 0).toLocaleString()}
+              </div>
             </div>
 
           </div>

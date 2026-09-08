@@ -2,24 +2,34 @@ import { useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+
 import Navbar from './components/layout/Navbar'
 import Sidebar from './components/layout/Sidebar'
+import SahyogChat from './components/chatbot/SahyogChat'
+
 import LandingPage from './pages/public/LandingPage'
 import LoginPage from './pages/public/LoginPage'
 import RegisterPage from './pages/public/RegisterPage'
+
 import CitizenDashboard from './pages/citizen/CitizenDashboard'
 import ChallengeForm from './pages/citizen/ChallengeForm'
 import MyChallengesPage from './pages/citizen/MyChallengesPage'
 import ChallengeDetailPage from './pages/citizen/ChallengeDetailPage'
+
 import UniversityDashboard from './pages/university/UniversityDashboard'
 import UniversityChallengesPage from './pages/university/UniversityChallengesPage'
 import UniversityChallengeReview from './pages/university/UniversityChallengeReview'
 import ProposalFormPage from './pages/university/ProposalFormPage'
 import UniversityProjectsPage from './pages/university/UniversityProjectsPage'
 import ProjectDetailPage from './pages/university/ProjectDetailPage'
+
 import IndustryDashboard from './pages/industry/IndustryDashboard'
 import IndustryProjectsPage from './pages/industry/IndustryProjectsPage'
+
 import GovernmentDashboard from './pages/government/GovernmentDashboard'
+
+import ScientistDashboard from './pages/scientist/ScientistDashboard'
+
 
 function ProtectedRoute({ allowedRoles, children }) {
   const { user } = useAuth()
@@ -34,6 +44,7 @@ function ProtectedRoute({ allowedRoles, children }) {
 
   return children
 }
+
 
 function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -54,11 +65,17 @@ function AppShell({ children }) {
           />
         ) : null}
 
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          {children}
+        </main>
       </div>
+
+      {/* Sahyog AI Assistant */}
+      <SahyogChat />
     </div>
   )
 }
+
 
 function AppRoutes() {
   const { user } = useAuth()
@@ -98,6 +115,7 @@ function AppRoutes() {
       />
 
       {/* citizen routes */}
+
       <Route
         path="/citizen/dashboard"
         element={
@@ -143,6 +161,7 @@ function AppRoutes() {
       />
 
       {/* university routes */}
+
       <Route
         path="/university/dashboard"
         element={
@@ -199,6 +218,7 @@ function AppRoutes() {
       />
 
       {/* shared project detail */}
+
       <Route
         path="/projects/:id"
         element={
@@ -209,6 +229,7 @@ function AppRoutes() {
       />
 
       {/* industry routes */}
+
       <Route
         path="/industry/dashboard"
         element={
@@ -243,6 +264,7 @@ function AppRoutes() {
       />
 
       {/* government routes */}
+
       <Route
         path="/government/dashboard"
         element={
@@ -254,22 +276,53 @@ function AppRoutes() {
         }
       />
 
+      {/* scientist routes */}
+
+      <Route
+        path="/scientist/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['SCIENTIST', 'SUPER_ADMIN']}>
+            <AppShell>
+              <ScientistDashboard />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+
       {/* fallback */}
+
       <Route
         path="*"
         element={
           <AppShell>
             {user ? (
               user.role === 'INDUSTRY_ADMIN' ? (
-                <Navigate to="/industry/dashboard" replace />
+                <Navigate
+                  to="/industry/dashboard"
+                  replace
+                />
               ) : user.role === 'HEI_ADMIN' ||
                 user.role === 'FACULTY' ? (
-                <Navigate to="/university/dashboard" replace />
+                <Navigate
+                  to="/university/dashboard"
+                  replace
+                />
               ) : user.role === 'CITIZEN' ? (
-                <Navigate to="/citizen/dashboard" replace />
+                <Navigate
+                  to="/citizen/dashboard"
+                  replace
+                />
               ) : user.role === 'GOVERNMENT' ||
                 user.role === 'SUPER_ADMIN' ? (
-                <Navigate to="/government/dashboard" replace />
+                <Navigate
+                  to="/government/dashboard"
+                  replace
+                />
+              ) : user.role === 'SCIENTIST' ? (
+                <Navigate
+                  to="/scientist/dashboard"
+                  replace
+                />
               ) : (
                 <LandingPage />
               )
@@ -282,6 +335,7 @@ function AppRoutes() {
     </Routes>
   )
 }
+
 
 export default function App() {
   return (

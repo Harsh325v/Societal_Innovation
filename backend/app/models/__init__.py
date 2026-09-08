@@ -13,4 +13,10 @@ from app.models.faculty import Faculty
 from app.models.faculty_expertise import FacultyExpertise
 
 from app.models.challenge_hei_match import ChallengeHEIMatch
+
+from app.models.project_proposal import ProjectProposal
+from app.models.project import Project
+
 from app.models.industry_collaboration import IndustryCollaboration
+from app.models.project_task import ProjectTask
+from app.models.scientist_review import ScientistReview

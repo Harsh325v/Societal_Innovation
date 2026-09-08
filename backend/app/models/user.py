@@ -14,6 +14,7 @@ class UserRole(str, Enum):
     HEI_ADMIN = "HEI_ADMIN"
     FACULTY = "FACULTY"
     STUDENT = "STUDENT"
+    SCIENTIST = "SCIENTIST"
     INDUSTRY_ADMIN = "INDUSTRY_ADMIN"
     MENTOR = "MENTOR"
     SUPER_ADMIN = "SUPER_ADMIN"
@@ -79,13 +80,11 @@ class User(Base):
         onupdate=datetime.utcnow,
     )
 
-    # all challenges submitted by this user
     challenges = relationship(
         "Challenge",
         back_populates="user",
     )
 
-    # lets us do user.hei to get their university
     hei = relationship(
         "HEI",
         back_populates="users",

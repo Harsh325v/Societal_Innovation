@@ -43,9 +43,12 @@ class Project(Base):
         nullable=False,
     )
 
+    # project lifecycle:
+    # PROPOSAL -> APPROVED -> RESEARCH -> PROTOTYPE
+    # -> TESTING -> PILOT -> DEPLOYED -> COMPLETED
     status: Mapped[str] = mapped_column(
         String(30),
-        default="ACTIVE",
+        default="PROPOSAL",
         nullable=False,
     )
 

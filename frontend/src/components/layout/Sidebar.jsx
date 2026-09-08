@@ -8,6 +8,7 @@ import {
   FolderKanban,
   LogOut,
   Sparkles,
+  Microscope,
 } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
@@ -117,6 +118,21 @@ const menu = {
       section: 'impact',
     },
   ],
+
+  SCIENTIST: [
+    {
+      label: 'Dashboard',
+      to: '/scientist/dashboard',
+      icon: LayoutDashboard,
+      end: true,
+    },
+    {
+      label: 'Review Problems',
+      to: '/scientist/dashboard',
+      icon: Microscope,
+      end: true,
+    },
+  ],
 }
 
 export default function Sidebar({ visible, onClose }) {
@@ -136,14 +152,12 @@ export default function Sidebar({ visible, onClose }) {
 
     event.preventDefault()
 
-    // go to the government dashboard first if needed
     if (location.pathname !== '/government/dashboard') {
       navigate(`/government/dashboard#${item.section}`)
       onClose()
       return
     }
 
-    // update the URL and scroll to the selected section
     window.history.pushState(
       {},
       '',
