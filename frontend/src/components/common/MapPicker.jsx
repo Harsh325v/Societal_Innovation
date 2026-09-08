@@ -60,7 +60,7 @@ function MapUpdater({ position }) {
 
 export default function MapPicker({ position, setPosition }) {
   return (
-    <div className="h-72 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+    <div className="relative z-0 h-72 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
       <MapContainer
         center={[23.3441, 85.3096]}
         zoom={7}
