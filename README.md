@@ -1,10 +1,10 @@
-# Societal Innovation Collaboration Portal
+# Sahyog Jharkhand
 
 > A digital platform connecting real-world societal challenges with Higher Education Institutions (HEIs), faculty, students, industry, and government for collaborative problem solving.
 
 ## Overview
 
-The Societal Innovation Collaboration Portal is an AI-assisted platform designed to bridge the gap between **societal problems and academic/industry capabilities**.
+Sahyog Jharkhand is an AI-assisted platform designed to bridge the gap between **societal problems and academic/industry capabilities**.
 
 Citizens, community organizations, and government bodies can submit real-world challenges. The platform analyzes each challenge, identifies its domain and priority, finds relevant HEIs and faculty, and enables universities and industry partners to collaborate on solving the problem.
 
