@@ -314,6 +314,8 @@ def update_project_status(
     # UPDATE
     # -----------------------------------------------------
 
+    previous_status = project.status
+
     project.status = status
 
     # Automatically record completion date.
@@ -324,7 +326,7 @@ def update_project_status(
     # DEPLOYMENT SMS NOTIFICATION
     # -----------------------------------------------------
 
-    if status == "DEPLOYED":
+    if status == "DEPLOYED" and previous_status != "DEPLOYED":
         challenge = project.challenge
 
         if challenge is not None:
