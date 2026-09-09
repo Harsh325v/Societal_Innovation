@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 
 import api from '../../services/api'
+import { useTranslation } from '../../i18n/useTranslation'
 
 const COLORS = [
   '#0f172a',
@@ -50,6 +51,8 @@ const LIFECYCLE_ORDER = [
 ]
 
 export default function GovernmentDashboard() {
+  const { t, language } = useTranslation()
+
   const [dashboard, setDashboard] = useState(null)
   const [districtProjects, setDistrictProjects] = useState([])
   const [loading, setLoading] = useState(true)
@@ -58,40 +61,50 @@ export default function GovernmentDashboard() {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        // Main government dashboard
-        const response = await api.get('/government/dashboard')
+        setLoading(true)
+        setError('')
+
+        const response = await api.get(
+          '/government/dashboard'
+        )
 
         setDashboard(response.data)
 
-        // Load district information
         try {
-          const districtResponse = await api.get('/government/districts')
+          const districtResponse =
+            await api.get('/government/districts')
 
-          const districts = districtResponse.data || []
+          const districts =
+            districtResponse.data || []
 
-          const projectResults = await Promise.all(
-            districts.map(async (district) => {
-              try {
-                const detailResponse = await api.get(
-                  `/government/districts/${encodeURIComponent(
-                    district.district
-                  )}`
-                )
+          const projectResults =
+            await Promise.all(
+              districts.map(async (district) => {
+                try {
+                  const detailResponse =
+                    await api.get(
+                      `/government/districts/${encodeURIComponent(
+                        district.district
+                      )}`
+                    )
 
-                return {
-                  district: district.district,
-                  challenges: district.challenges || 0,
-                  projects: detailResponse.data.projects || 0,
+                  return {
+                    district: district.district,
+                    challenges:
+                      district.challenges || 0,
+                    projects:
+                      detailResponse.data.projects || 0,
+                  }
+                } catch {
+                  return {
+                    district: district.district,
+                    challenges:
+                      district.challenges || 0,
+                    projects: 0,
+                  }
                 }
-              } catch {
-                return {
-                  district: district.district,
-                  challenges: district.challenges || 0,
-                  projects: 0,
-                }
-              }
-            })
-          )
+              })
+            )
 
           setDistrictProjects(projectResults)
         } catch (districtError) {
@@ -105,7 +118,7 @@ export default function GovernmentDashboard() {
 
         setError(
           err.response?.data?.detail ||
-            'Could not load government dashboard.'
+            t('couldNotLoadGovernmentDashboard')
         )
       } finally {
         setLoading(false)
@@ -113,13 +126,13 @@ export default function GovernmentDashboard() {
     }
 
     loadDashboard()
-  }, [])
+  }, [language])
 
   if (loading) {
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
         <p className="text-slate-600">
-          Loading government dashboard...
+          {t('loadingGovernmentDashboard')}
         </p>
       </div>
     )
@@ -128,7 +141,9 @@ export default function GovernmentDashboard() {
   if (error) {
     return (
       <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
-        <p className="text-red-600">{error}</p>
+        <p className="text-red-600">
+          {error}
+        </p>
       </div>
     )
   }
@@ -139,9 +154,14 @@ export default function GovernmentDashboard() {
 
   const stats = dashboard.stats || {}
 
-  const domainData = dashboard.domainData || []
-  const statusData = dashboard.statusData || []
-  const rawProjectData = dashboard.projectData || []
+  const domainData =
+    dashboard.domainData || []
+
+  const statusData =
+    dashboard.statusData || []
+
+  const rawProjectData =
+    dashboard.projectData || []
 
   const universityParticipation =
     dashboard.universityParticipation || []
@@ -149,18 +169,9 @@ export default function GovernmentDashboard() {
   const industryParticipation =
     dashboard.industryParticipation || []
 
-  const impact = dashboard.impact || {}
+  const impact =
+    dashboard.impact || {}
 
-  /*
-   * Backend sends district data as:
-   *
-   * {
-   *   district: "Ranchi",
-   *   challenges: 1
-   * }
-   *
-   * Recharts needs the actual property name.
-   */
   const challengeDensity = (
     dashboard.challengeDensity || []
   ).map((item) => ({
@@ -168,153 +179,260 @@ export default function GovernmentDashboard() {
     value: item.challenges || 0,
   }))
 
-  /*
-   * Make sure every lifecycle stage appears,
-   * even if its count is 0.
-   */
-  const projectData = LIFECYCLE_ORDER.map((status) => {
-    const found = rawProjectData.find(
-      (item) => item.name === status
-    )
+  const getCategoryLabel = (category) => {
+    if (!category) return t('other')
 
-    return {
-      name: status,
-      value: found?.value || 0,
+    if (language === 'hi') {
+      const hindiCategories = {
+        Environment: 'पर्यावरण',
+        Water: 'जल',
+        Agriculture: 'कृषि',
+        Health: 'स्वास्थ्य',
+        Education: 'शिक्षा',
+        Infrastructure: 'बुनियादी ढाँचा',
+        Sanitation: 'स्वच्छता',
+        Energy: 'ऊर्जा',
+        Transport: 'परिवहन',
+        Waste: 'कचरा प्रबंधन',
+        Environment_and_Climate:
+          'पर्यावरण और जलवायु',
+        Other: 'अन्य',
+      }
+
+      return (
+        hindiCategories[category] ||
+        category
+      )
     }
-  })
+
+    return category
+  }
+
+  const getStatusLabel = (status) => {
+    const labels = {
+      OPEN: t('open'),
+      RESOLVED: t('resolved'),
+      IN_REVIEW: t('underReview'),
+      PROPOSAL: t('proposal'),
+      APPROVED: t('approved'),
+      RESEARCH: t('research'),
+      PROTOTYPE: t('prototype'),
+      TESTING: t('testing'),
+      PILOT: t('pilotStage'),
+      DEPLOYED: t('solutionDeployed'),
+      COMPLETED: t('completed'),
+      IN_PROGRESS: t('solutionInProgress'),
+    }
+
+    return (
+      labels[status] ||
+      String(status || '')
+        .replaceAll('_', ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (letter) =>
+          letter.toUpperCase()
+        )
+    )
+  }
+
+  const projectData =
+    LIFECYCLE_ORDER.map((status) => {
+      const found =
+        rawProjectData.find(
+          (item) => item.name === status
+        )
+
+      return {
+        name: getStatusLabel(status),
+        value: found?.value || 0,
+      }
+    })
+
+  const translatedDomainData =
+    domainData.map((item) => ({
+      ...item,
+      name: getCategoryLabel(item.name),
+    }))
+
+  const translatedStatusData =
+    statusData.map((item) => ({
+      ...item,
+      name: getStatusLabel(item.name),
+    }))
 
   return (
     <div className="space-y-6">
 
       {/* PAGE HEADING */}
+
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-          Government overview
+          {t('governmentOverview')}
         </p>
 
         <h1 className="mt-2 text-3xl font-bold text-slate-900">
-          Social innovation intelligence
+          {t('socialInnovationIntelligence')}
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Monitor challenges, projects, collaboration and
-          real-world social impact across Jharkhand.
+          {t('governmentDashboardDescription')}
         </p>
       </div>
 
+
       {/* BASIC STATISTICS */}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
         <StatCard
           icon={CircleDashed}
-          label="Total challenges"
+          label={t('totalChallenges')}
           value={stats.totalChallenges || 0}
           accent="slate"
         />
 
         <StatCard
           icon={ShieldCheck}
-          label="Active challenges"
+          label={t('activeChallenges')}
           value={stats.activeChallenges || 0}
           accent="cyan"
         />
 
         <StatCard
           icon={Users}
-          label="Resolved challenges"
+          label={t('resolvedChallenges')}
           value={stats.resolvedChallenges || 0}
           accent="emerald"
         />
 
         <StatCard
           icon={Building2}
-          label="Active projects"
+          label={t('activeProjects')}
           value={stats.activeProjects || 0}
           accent="violet"
         />
 
       </div>
 
+
       {/* PARTICIPATION + DEPLOYMENT */}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
         <StatCard
           icon={Users}
-          label="Universities participating"
-          value={stats.universitiesParticipating || 0}
+          label={t('universitiesParticipating')}
+          value={
+            stats.universitiesParticipating || 0
+          }
           accent="slate"
         />
 
         <StatCard
           icon={Building2}
-          label="Industry partners"
+          label={t('industryPartners')}
           value={stats.industryPartners || 0}
           accent="cyan"
         />
 
         <StatCard
           icon={BarChart3}
-          label="Solutions deployed"
+          label={t('solutionsDeployed')}
           value={stats.solutionsDeployed || 0}
           accent="emerald"
         />
 
         <StatCard
           icon={Users}
-          label="People benefited"
-          value={(stats.peopleBenefited || 0).toLocaleString()}
+          label={t('peopleBenefited')}
+          value={(
+            stats.peopleBenefited || 0
+          ).toLocaleString(
+            language === 'hi'
+              ? 'hi-IN'
+              : 'en-IN'
+          )}
           accent="violet"
         />
 
       </div>
 
+
       {/* REAL IMPACT STATISTICS */}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
         <StatCard
           icon={Users}
-          label="People benefited"
-          value={(impact.peopleBenefited || 0).toLocaleString()}
+          label={t('peopleBenefited')}
+          value={(
+            impact.peopleBenefited || 0
+          ).toLocaleString(
+            language === 'hi'
+              ? 'hi-IN'
+              : 'en-IN'
+          )}
           accent="emerald"
         />
 
         <StatCard
           icon={TreePine}
-          label="Villages covered"
-          value={(impact.villagesCovered || 0).toLocaleString()}
+          label={t('villagesCovered')}
+          value={(
+            impact.villagesCovered || 0
+          ).toLocaleString(
+            language === 'hi'
+              ? 'hi-IN'
+              : 'en-IN'
+          )}
           accent="cyan"
         />
 
         <StatCard
           icon={MapPinned}
-          label="Districts covered"
+          label={t('districtsCovered')}
           value={impact.districtsCovered || 0}
           accent="violet"
         />
 
         <StatCard
           icon={IndianRupee}
-          label="Cost savings"
-          value={`₹${(impact.costSavings || 0).toLocaleString()}`}
+          label={t('costSavings')}
+          value={`₹${(
+            impact.costSavings || 0
+          ).toLocaleString(
+            language === 'hi'
+              ? 'hi-IN'
+              : 'en-IN'
+          )}`}
           accent="slate"
         />
 
       </div>
 
+
       {/* FUNDING */}
-      <Card title="Industry funding">
+
+      <Card title={t('industryFunding')}>
 
         <div className="flex items-center justify-between rounded-2xl bg-slate-50 p-5">
 
           <div>
+
             <p className="text-sm text-slate-500">
-              Total funding contributed through industry
-              collaborations
+              {t('totalIndustryFunding')}
             </p>
 
             <p className="mt-2 text-3xl font-bold text-slate-900">
-              ₹{(stats.totalFunding || 0).toLocaleString()}
+              ₹{(
+                stats.totalFunding || 0
+              ).toLocaleString(
+                language === 'hi'
+                  ? 'hi-IN'
+                  : 'en-IN'
+              )}
             </p>
+
           </div>
 
           <div className="rounded-2xl bg-white p-4 shadow-sm">
@@ -325,43 +443,56 @@ export default function GovernmentDashboard() {
 
       </Card>
 
+
       {/* CHALLENGES BY DOMAIN + DISTRICT */}
+
       <div
         id="challenges"
         className="grid gap-6 xl:grid-cols-2 scroll-mt-6"
       >
 
-        <Card title="Challenges by domain">
+        <Card title={t('challengesByDomain')}>
 
-          {domainData.length === 0 ? (
+          {translatedDomainData.length === 0 ? (
+
             <div className="flex h-72 items-center justify-center text-sm text-slate-500">
-              No challenge data available yet.
+              {t('noChallengeData')}
             </div>
+
           ) : (
+
             <div className="h-72">
 
               <ResponsiveContainer
                 width="100%"
                 height="100%"
               >
+
                 <PieChart>
 
                   <Pie
-                    data={domainData}
+                    data={translatedDomainData}
                     dataKey="value"
                     nameKey="name"
                     innerRadius={50}
                     outerRadius={90}
                     paddingAngle={3}
                   >
-                    {domainData.map((entry, index) => (
-                      <Cell
-                        key={entry.name}
-                        fill={
-                          COLORS[index % COLORS.length]
-                        }
-                      />
-                    ))}
+
+                    {translatedDomainData.map(
+                      (entry, index) => (
+                        <Cell
+                          key={entry.name}
+                          fill={
+                            COLORS[
+                              index %
+                                COLORS.length
+                            ]
+                          }
+                        />
+                      )
+                    )}
+
                   </Pie>
 
                   <Tooltip />
@@ -369,6 +500,7 @@ export default function GovernmentDashboard() {
                   <Legend />
 
                 </PieChart>
+
               </ResponsiveContainer>
 
             </div>
@@ -376,25 +508,32 @@ export default function GovernmentDashboard() {
 
         </Card>
 
+
         <div
           id="district-map"
           className="scroll-mt-6"
         >
-          <Card title="Challenges by district">
+
+          <Card title={t('challengesByDistrict')}>
 
             {challengeDensity.length === 0 ? (
+
               <div className="flex h-72 items-center justify-center text-sm text-slate-500">
-                District data will appear once challenge
-                locations are tracked.
+                {t('districtDataDescription')}
               </div>
+
             ) : (
+
               <div className="h-72">
 
                 <ResponsiveContainer
                   width="100%"
                   height="100%"
                 >
-                  <BarChart data={challengeDensity}>
+
+                  <BarChart
+                    data={challengeDensity}
+                  >
 
                     <XAxis dataKey="district" />
 
@@ -404,37 +543,52 @@ export default function GovernmentDashboard() {
 
                     <Bar
                       dataKey="value"
-                      name="Challenges"
+                      name={t('challenges')}
                       fill="#0f172a"
-                      radius={[8, 8, 0, 0]}
+                      radius={[
+                        8,
+                        8,
+                        0,
+                        0,
+                      ]}
                     />
 
                   </BarChart>
+
                 </ResponsiveContainer>
 
               </div>
             )}
 
           </Card>
+
         </div>
 
       </div>
 
+
       {/* PROJECTS BY DISTRICT */}
-      <Card title="Projects by district">
+
+      <Card title={t('projectsByDistrict')}>
 
         {districtProjects.length === 0 ? (
+
           <div className="flex h-40 items-center justify-center text-sm text-slate-500">
-            No district project data available yet.
+            {t('noDistrictProjectData')}
           </div>
+
         ) : (
+
           <div className="h-72">
 
             <ResponsiveContainer
               width="100%"
               height="100%"
             >
-              <BarChart data={districtProjects}>
+
+              <BarChart
+                data={districtProjects}
+              >
 
                 <XAxis dataKey="district" />
 
@@ -446,19 +600,30 @@ export default function GovernmentDashboard() {
 
                 <Bar
                   dataKey="challenges"
-                  name="Challenges"
+                  name={t('challenges')}
                   fill="#2563eb"
-                  radius={[8, 8, 0, 0]}
+                  radius={[
+                    8,
+                    8,
+                    0,
+                    0,
+                  ]}
                 />
 
                 <Bar
                   dataKey="projects"
-                  name="Projects"
+                  name={t('projects')}
                   fill="#14b8a6"
-                  radius={[8, 8, 0, 0]}
+                  radius={[
+                    8,
+                    8,
+                    0,
+                    0,
+                  ]}
                 />
 
               </BarChart>
+
             </ResponsiveContainer>
 
           </div>
@@ -466,23 +631,31 @@ export default function GovernmentDashboard() {
 
       </Card>
 
+
       {/* CHALLENGE STATUS + PROJECT LIFECYCLE */}
+
       <div className="grid gap-6 xl:grid-cols-2">
 
-        <Card title="Challenge status">
+        <Card title={t('challengeStatus')}>
 
-          {statusData.length === 0 ? (
+          {translatedStatusData.length === 0 ? (
+
             <div className="flex h-72 items-center justify-center text-sm text-slate-500">
-              No challenge status data available yet.
+              {t('noChallengeStatusData')}
             </div>
+
           ) : (
+
             <div className="h-72">
 
               <ResponsiveContainer
                 width="100%"
                 height="100%"
               >
-                <BarChart data={statusData}>
+
+                <BarChart
+                  data={translatedStatusData}
+                >
 
                   <XAxis dataKey="name" />
 
@@ -492,12 +665,18 @@ export default function GovernmentDashboard() {
 
                   <Bar
                     dataKey="value"
-                    name="Challenges"
+                    name={t('challenges')}
                     fill="#2563eb"
-                    radius={[8, 8, 0, 0]}
+                    radius={[
+                      8,
+                      8,
+                      0,
+                      0,
+                    ]}
                   />
 
                 </BarChart>
+
               </ResponsiveContainer>
 
             </div>
@@ -505,7 +684,8 @@ export default function GovernmentDashboard() {
 
         </Card>
 
-        <Card title="Project lifecycle">
+
+        <Card title={t('projectLifecycle')}>
 
           <div className="h-72">
 
@@ -513,6 +693,7 @@ export default function GovernmentDashboard() {
               width="100%"
               height="100%"
             >
+
               <BarChart data={projectData}>
 
                 <XAxis
@@ -530,12 +711,18 @@ export default function GovernmentDashboard() {
 
                 <Bar
                   dataKey="value"
-                  name="Projects"
+                  name={t('projects')}
                   fill="#14b8a6"
-                  radius={[8, 8, 0, 0]}
+                  radius={[
+                    8,
+                    8,
+                    0,
+                    0,
+                  ]}
                 />
 
               </BarChart>
+
             </ResponsiveContainer>
 
           </div>
@@ -544,12 +731,15 @@ export default function GovernmentDashboard() {
 
       </div>
 
+
       {/* LIFECYCLE SUMMARY */}
-      <Card title="Project lifecycle summary">
+
+      <Card title={t('projectLifecycleSummary')}>
 
         <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-8">
 
           {projectData.map((item) => (
+
             <div
               key={item.name}
               className="rounded-2xl bg-slate-50 p-4 text-center"
@@ -564,71 +754,91 @@ export default function GovernmentDashboard() {
               </p>
 
             </div>
+
           ))}
 
         </div>
 
       </Card>
 
+
       {/* UNIVERSITY + INDUSTRY PARTICIPATION */}
+
       <div className="grid gap-6 lg:grid-cols-2">
 
-        <Card title="University participation">
+        <Card title={t('universityParticipation')}>
 
           {universityParticipation.length === 0 ? (
+
             <p className="text-sm text-slate-500">
-              No university projects yet.
+              {t('noUniversityProjects')}
             </p>
+
           ) : (
+
             <div className="space-y-3">
 
-              {universityParticipation.map((item) => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
-                >
+              {universityParticipation.map(
+                (item) => (
 
-                  <span className="font-medium text-slate-700">
-                    {item.name}
-                  </span>
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                  >
 
-                  <span className="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">
-                    {item.projects} projects
-                  </span>
+                    <span className="font-medium text-slate-700">
+                      {item.name}
+                    </span>
 
-                </div>
-              ))}
+                    <span className="rounded-full bg-slate-900 px-2 py-1 text-xs font-semibold text-white">
+                      {item.projects}{' '}
+                      {t('projects')}
+                    </span>
+
+                  </div>
+
+                )
+              )}
 
             </div>
           )}
 
         </Card>
 
-        <Card title="Industry participation">
+
+        <Card title={t('industryParticipation')}>
 
           {industryParticipation.length === 0 ? (
+
             <p className="text-sm text-slate-500">
-              No industry collaborations yet.
+              {t('noIndustryCollaborations')}
             </p>
+
           ) : (
+
             <div className="space-y-3">
 
-              {industryParticipation.map((item) => (
-                <div
-                  key={item.name}
-                  className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
-                >
+              {industryParticipation.map(
+                (item) => (
 
-                  <span className="font-medium text-slate-700">
-                    {item.name}
-                  </span>
+                  <div
+                    key={item.name}
+                    className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
+                  >
 
-                  <span className="rounded-full bg-emerald-500 px-2 py-1 text-xs font-semibold text-white">
-                    {item.collaborations} collaborations
-                  </span>
+                    <span className="font-medium text-slate-700">
+                      {item.name}
+                    </span>
 
-                </div>
-              ))}
+                    <span className="rounded-full bg-emerald-500 px-2 py-1 text-xs font-semibold text-white">
+                      {item.collaborations}{' '}
+                      {t('collaborations')}
+                    </span>
+
+                  </div>
+
+                )
+              )}
 
             </div>
           )}
@@ -637,68 +847,86 @@ export default function GovernmentDashboard() {
 
       </div>
 
+
       {/* SOCIAL IMPACT */}
+
       <div
         id="impact"
         className="scroll-mt-6"
       >
-        <Card title="Social impact">
+
+        <Card title={t('socialImpact')}>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
 
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">
-                People benefited
-              </div>
+            <ImpactBox
+              label={t('peopleBenefited')}
+              value={(
+                impact.peopleBenefited || 0
+              ).toLocaleString(
+                language === 'hi'
+                  ? 'hi-IN'
+                  : 'en-IN'
+              )}
+            />
 
-              <div className="mt-2 text-2xl font-bold text-slate-900">
-                {(impact.peopleBenefited || 0).toLocaleString()}
-              </div>
-            </div>
+            <ImpactBox
+              label={t('villagesCovered')}
+              value={(
+                impact.villagesCovered || 0
+              ).toLocaleString(
+                language === 'hi'
+                  ? 'hi-IN'
+                  : 'en-IN'
+              )}
+            />
 
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">
-                Villages covered
-              </div>
+            <ImpactBox
+              label={t('districtsCovered')}
+              value={
+                impact.districtsCovered || 0
+              }
+            />
 
-              <div className="mt-2 text-2xl font-bold text-slate-900">
-                {(impact.villagesCovered || 0).toLocaleString()}
-              </div>
-            </div>
+            <ImpactBox
+              label={t('projectsDeployed')}
+              value={
+                impact.projectsDeployed || 0
+              }
+            />
 
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">
-                Districts covered
-              </div>
-
-              <div className="mt-2 text-2xl font-bold text-slate-900">
-                {impact.districtsCovered || 0}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">
-                Projects deployed
-              </div>
-
-              <div className="mt-2 text-2xl font-bold text-slate-900">
-                {impact.projectsDeployed || 0}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 p-4">
-              <div className="text-sm text-slate-500">
-                Cost savings
-              </div>
-
-              <div className="mt-2 text-2xl font-bold text-slate-900">
-                ₹{(impact.costSavings || 0).toLocaleString()}
-              </div>
-            </div>
+            <ImpactBox
+              label={t('costSavings')}
+              value={`₹${(
+                impact.costSavings || 0
+              ).toLocaleString(
+                language === 'hi'
+                  ? 'hi-IN'
+                  : 'en-IN'
+              )}`}
+            />
 
           </div>
 
         </Card>
+
+      </div>
+
+    </div>
+  )
+}
+
+
+function ImpactBox({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4">
+
+      <div className="text-sm text-slate-500">
+        {label}
+      </div>
+
+      <div className="mt-2 text-2xl font-bold text-slate-900">
+        {value}
       </div>
 
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useParams } from 'react-router-dom'
+import { useTranslation } from '../../i18n/useTranslation'
 
 import {
   Building2,
@@ -31,6 +32,285 @@ import api from '../../services/api'
 export default function ProjectDetailPage({
   collaborationMode = false,
 }) {
+  const { language } = useTranslation()
+
+  const projectTranslations = {
+    en: {
+      loadingProject: 'Loading project...',
+      couldNotLoadProject: 'Could not load project.',
+      couldNotUpdateProjectStatus: 'Could not update project status.',
+      projectLifecycle: 'Project Lifecycle',
+      clickStage: "Click a stage to update the project's current lifecycle status.",
+      project: 'Project',
+      collaborationOffers: 'Collaboration offers',
+      assignedToUser: 'Assigned to:',
+      university: 'University',
+      startDate: 'Start date',
+      notStarted: 'Not started',
+      challenge: 'Challenge',
+      complete: 'complete',
+      overview: 'Overview',
+      projectProgress: 'Project progress',
+      projectMembers: 'Project members',
+      hei: 'HEI',
+      team: 'Team',
+      noMembers: 'No project members have been added yet.',
+      milestones: 'Milestones',
+      cancel: 'Cancel',
+      addMilestone: 'Add milestone',
+      milestoneTitle: 'Milestone title',
+      milestoneOrder: 'Milestone order',
+      fieldAssessment: 'e.g. Field Assessment',
+      description: 'Description',
+      describeCompleted: 'Describe what needs to be completed...',
+      dueDate: 'Due date',
+      creating: 'Creating...',
+      createMilestone: 'Create milestone',
+      noMilestones: 'No milestones have been created for this project yet.',
+      milestone: 'Milestone',
+      dueDateShort: 'Due date:',
+      notSet: 'Not set',
+      completed: 'Completed:',
+      markInProgress: 'Mark in progress',
+      markCompleted: 'Mark completed',
+      projectTasks: 'Project Tasks',
+      addTask: 'Add task',
+      taskTitle: 'Task title',
+      conductSurvey: 'e.g. Conduct village survey',
+      assignTo: 'Assign to',
+      unassigned: 'Unassigned',
+      user: 'User',
+      addMembersFirst: 'Add project members first to assign a task.',
+      describeDone: 'Describe what needs to be done...',
+      createTask: 'Create task',
+      noTasks: 'No tasks have been created for this project yet.',
+      assignedTo: 'Assigned to:',
+      due: 'Due:',
+      projectDeliverables: 'Project Deliverables',
+      addDeliverable: 'Add deliverable',
+      deliverableTitle: 'Deliverable title',
+      waterPrototype: 'e.g. Water monitoring prototype',
+      describeOutput: 'Describe the project output...',
+      submitting: 'Submitting...',
+      submitDeliverable: 'Submit deliverable',
+      noDeliverables: 'No deliverables have been submitted yet.',
+      submitted: 'Submitted:',
+      approve: 'Approve',
+      reject: 'Reject',
+      projectImpact: 'Project Impact',
+      addImpact: 'Add impact',
+      peopleBenefited: 'People benefited',
+      villagesCovered: 'Villages covered',
+      districtsCovered: 'Districts covered',
+      costSavings: 'Cost savings',
+      environmentalImpact: 'Environmental impact',
+      reducedWaste: 'e.g. Reduced water wastage...',
+      outcome: 'Outcome',
+      describeResult: 'Describe the result of the project...',
+      deploymentStatus: 'Deployment status',
+      notDeployed: 'Not deployed',
+      deployed: 'Deployed',
+      saving: 'Saving...',
+      saveImpact: 'Save impact',
+      noImpact: 'No impact data has been recorded for this project yet.',
+      industryCollaboration: 'Industry collaboration',
+      noIndustryOffers: 'No industry collaboration offers yet.',
+      accept: 'Accept',
+      startCollaboration: 'Start collaboration',
+      offerCollaboration: 'Offer collaboration',
+      supportType: 'Support type',
+      mentorship: 'Mentorship',
+      funding: 'Funding',
+      prototyping: 'Prototyping',
+      testing: 'Testing',
+      pilotDeployment: 'Pilot Deployment',
+      deployment: 'Deployment',
+      fundingAmount: 'Funding amount (₹)',
+      collaborationDetails: 'Collaboration details',
+      supportDescription: 'Describe how your organization can support this project...',
+      noOffers: 'No collaboration offers have been made yet.',
+      proposal: 'Proposal',
+      approved: 'Approved',
+      research: 'Research',
+      prototype: 'Prototype',
+      pilot: 'Pilot',
+      inProgress: 'In progress',
+      pending: 'Pending',
+      submittedStatus: 'Submitted',
+      rejected: 'Rejected',
+      errorMilestoneTitle: 'Please enter a milestone title.',
+      errorMilestoneOrder: 'Please enter the milestone order.',
+      errorCreateMilestone: 'Could not create milestone.',
+      errorTaskTitle: 'Please enter a task title.',
+      errorCreateTask: 'Could not create task.',
+      errorSaveImpact: 'Could not save project impact.',
+      errorDeliverableTitle: 'Please enter a deliverable title.',
+      errorSubmitDeliverable: 'Could not submit deliverable.',
+      errorCollaborationDescription: 'Please describe your collaboration offer.',
+      errorFundingAmount: 'Please enter the funding amount.',
+      errorCollaboration: 'Could not submit collaboration offer.',
+      errorUpdateCollaboration: 'Could not update collaboration.',
+      errorHei: 'Could not load HEI.',
+    },
+    hi: {
+      loadingProject: 'प्रोजेक्ट लोड हो रहा है...',
+      couldNotLoadProject: 'प्रोजेक्ट लोड नहीं हो सका।',
+      couldNotUpdateProjectStatus: 'प्रोजेक्ट की स्थिति अपडेट नहीं हो सकी।',
+      projectLifecycle: 'प्रोजेक्ट का चरण',
+      clickStage: 'प्रोजेक्ट की वर्तमान स्थिति अपडेट करने के लिए किसी चरण पर क्लिक करें।',
+      project: 'प्रोजेक्ट',
+      collaborationOffers: 'सहयोग प्रस्ताव',
+      assignedToUser: 'सौंपा गया:',
+      university: 'विश्वविद्यालय',
+      startDate: 'शुरुआत की तारीख',
+      notStarted: 'शुरू नहीं हुआ',
+      challenge: 'समस्या',
+      complete: 'पूर्ण',
+      overview: 'सारांश',
+      projectProgress: 'प्रोजेक्ट की प्रगति',
+      projectMembers: 'प्रोजेक्ट सदस्य',
+      hei: 'संस्थान',
+      team: 'टीम',
+      noMembers: 'अभी तक कोई प्रोजेक्ट सदस्य नहीं जोड़ा गया है।',
+      milestones: 'माइलस्टोन',
+      cancel: 'रद्द करें',
+      addMilestone: 'माइलस्टोन जोड़ें',
+      milestoneTitle: 'माइलस्टोन का नाम',
+      milestoneOrder: 'माइलस्टोन क्रम',
+      fieldAssessment: 'जैसे: क्षेत्र का आकलन',
+      description: 'विवरण',
+      describeCompleted: 'बताएँ कि क्या पूरा करना है...',
+      dueDate: 'अंतिम तारीख',
+      creating: 'बनाया जा रहा है...',
+      createMilestone: 'माइलस्टोन बनाएँ',
+      noMilestones: 'इस प्रोजेक्ट के लिए अभी कोई माइलस्टोन नहीं बनाया गया है।',
+      milestone: 'माइलस्टोन',
+      dueDateShort: 'अंतिम तारीख:',
+      notSet: 'तय नहीं है',
+      completed: 'पूरा हुआ:',
+      markInProgress: 'काम शुरू करें',
+      markCompleted: 'पूरा हुआ चिह्नित करें',
+      projectTasks: 'प्रोजेक्ट कार्य',
+      addTask: 'कार्य जोड़ें',
+      taskTitle: 'कार्य का नाम',
+      conductSurvey: 'जैसे: गाँव का सर्वेक्षण करें',
+      assignTo: 'किसे सौंपें',
+      unassigned: 'किसी को नहीं सौंपा',
+      user: 'उपयोगकर्ता',
+      addMembersFirst: 'कार्य सौंपने के लिए पहले प्रोजेक्ट सदस्य जोड़ें।',
+      describeDone: 'बताएँ कि क्या करना है...',
+      createTask: 'कार्य बनाएँ',
+      noTasks: 'इस प्रोजेक्ट के लिए अभी कोई कार्य नहीं बनाया गया है।',
+      assignedTo: 'सौंपा गया:',
+      due: 'अंतिम तारीख:',
+      projectDeliverables: 'प्रोजेक्ट डिलिवरेबल्स',
+      addDeliverable: 'डिलिवरेबल जोड़ें',
+      deliverableTitle: 'डिलिवरेबल का नाम',
+      waterPrototype: 'जैसे: पानी की निगरानी का प्रोटोटाइप',
+      describeOutput: 'प्रोजेक्ट के परिणाम का विवरण दें...',
+      submitting: 'जमा किया जा रहा है...',
+      submitDeliverable: 'डिलिवरेबल जमा करें',
+      noDeliverables: 'अभी तक कोई डिलिवरेबल जमा नहीं किया गया है।',
+      submitted: 'जमा किया गया:',
+      approve: 'स्वीकृत करें',
+      reject: 'अस्वीकार करें',
+      projectImpact: 'प्रोजेक्ट का प्रभाव',
+      addImpact: 'प्रभाव जोड़ें',
+      peopleBenefited: 'लाभ पाने वाले लोग',
+      villagesCovered: 'कवर किए गए गाँव',
+      districtsCovered: 'कवर किए गए जिले',
+      costSavings: 'लागत में बचत',
+      environmentalImpact: 'पर्यावरणीय प्रभाव',
+      reducedWaste: 'जैसे: पानी की बर्बादी कम हुई...',
+      outcome: 'परिणाम',
+      describeResult: 'प्रोजेक्ट के परिणाम का वर्णन करें...',
+      deploymentStatus: 'परिनियोजन स्थिति',
+      notDeployed: 'परिनियोजित नहीं',
+      deployed: 'परिनियोजित',
+      saving: 'सहेजा जा रहा है...',
+      saveImpact: 'प्रभाव सहेजें',
+      noImpact: 'इस प्रोजेक्ट के लिए अभी कोई प्रभाव डेटा दर्ज नहीं किया गया है।',
+      industryCollaboration: 'उद्योग सहयोग',
+      noIndustryOffers: 'अभी कोई उद्योग सहयोग प्रस्ताव नहीं है।',
+      accept: 'स्वीकार करें',
+      startCollaboration: 'सहयोग शुरू करें',
+      offerCollaboration: 'सहयोग का प्रस्ताव दें',
+      supportType: 'सहायता का प्रकार',
+      mentorship: 'मार्गदर्शन',
+      funding: 'वित्तीय सहायता',
+      prototyping: 'प्रोटोटाइप बनाना',
+      testing: 'परीक्षण',
+      pilotDeployment: 'पायलट परिनियोजन',
+      deployment: 'परिनियोजन',
+      fundingAmount: 'वित्तीय सहायता राशि (₹)',
+      collaborationDetails: 'सहयोग का विवरण',
+      supportDescription: 'बताएँ कि आपका संगठन इस प्रोजेक्ट में कैसे सहायता कर सकता है...',
+      noOffers: 'अभी तक कोई सहयोग प्रस्ताव नहीं दिया गया है।',
+      proposal: 'प्रस्ताव',
+      approved: 'स्वीकृत',
+      research: 'अनुसंधान',
+      prototype: 'प्रोटोटाइप',
+      pilot: 'पायलट',
+      inProgress: 'प्रगति में',
+      pending: 'लंबित',
+      submittedStatus: 'जमा किया गया',
+      rejected: 'अस्वीकृत',
+      errorMilestoneTitle: 'कृपया माइलस्टोन का नाम दर्ज करें।',
+      errorMilestoneOrder: 'कृपया माइलस्टोन क्रम दर्ज करें।',
+      errorCreateMilestone: 'माइलस्टोन नहीं बनाया जा सका।',
+      errorTaskTitle: 'कृपया कार्य का नाम दर्ज करें।',
+      errorCreateTask: 'कार्य नहीं बनाया जा सका।',
+      errorSaveImpact: 'प्रोजेक्ट का प्रभाव सहेजा नहीं जा सका।',
+      errorDeliverableTitle: 'कृपया डिलिवरेबल का नाम दर्ज करें।',
+      errorSubmitDeliverable: 'डिलिवरेबल जमा नहीं किया जा सका।',
+      errorCollaborationDescription: 'कृपया अपने सहयोग प्रस्ताव का विवरण दें।',
+      errorFundingAmount: 'कृपया वित्तीय सहायता राशि दर्ज करें।',
+      errorCollaboration: 'सहयोग प्रस्ताव जमा नहीं किया जा सका।',
+      errorUpdateCollaboration: 'सहयोग अपडेट नहीं किया जा सका।',
+      errorHei: 'संस्थान लोड नहीं हो सका।',
+    },
+  }
+
+  const tr = (key) =>
+    projectTranslations[language]?.[key] ||
+    projectTranslations.en[key] ||
+    key
+
+  const statusLabel = (status) => {
+    const labels = {
+      PROPOSAL: tr('proposal'),
+      APPROVED: tr('approved'),
+      RESEARCH: tr('research'),
+      PROTOTYPE: tr('prototype'),
+      TESTING: tr('testing'),
+      PILOT: tr('pilot'),
+      DEPLOYED: tr('deployed'),
+      COMPLETED: tr('completed'),
+      IN_PROGRESS: tr('inProgress'),
+      PENDING: tr('pending'),
+      SUBMITTED: tr('submittedStatus'),
+      REJECTED: tr('rejected'),
+      ACCEPTED: tr('accept'),
+    }
+    return labels[status] || status
+  }
+
+  const supportTypeLabel = (type) => {
+    const labels = {
+      MENTORSHIP: tr('mentorship'),
+      FUNDING: tr('funding'),
+      PROTOTYPING: tr('prototyping'),
+      TESTING: tr('testing'),
+      PILOT: tr('pilotDeployment'),
+      DEPLOYMENT: tr('deployment'),
+    }
+    return labels[type] || type
+  }
+
+  const formatDate = (value) =>
+    new Date(value).toLocaleDateString(
+      language === 'hi' ? 'hi-IN' : 'en-IN'
+    )
 
   const { id } = useParams()
 
@@ -314,7 +594,7 @@ export default function ProjectDetailPage({
 
         setError(
           err.response?.data?.detail ||
-            'Could not load project.'
+            tr('couldNotLoadProject')
         )
 
       } finally {
@@ -360,7 +640,7 @@ export default function ProjectDetailPage({
 
       setError(
         err.response?.data?.detail ||
-          'Could not update project status.'
+          tr('couldNotUpdateProjectStatus')
       )
 
     } finally {
@@ -385,7 +665,7 @@ export default function ProjectDetailPage({
     if (!milestoneForm.title.trim()) {
 
       setError(
-        'Please enter a milestone title.'
+        tr('errorMilestoneTitle')
       )
 
       return
@@ -395,7 +675,7 @@ export default function ProjectDetailPage({
     if (!milestoneForm.milestone_order) {
 
       setError(
-        'Please enter the milestone order.'
+        tr('errorMilestoneOrder')
       )
 
       return
@@ -453,7 +733,7 @@ export default function ProjectDetailPage({
 
       setError(
         err.response?.data?.detail ||
-          'Could not create milestone.'
+          tr('errorCreateMilestone')
       )
 
     } finally {
@@ -529,7 +809,7 @@ export default function ProjectDetailPage({
     if (!taskForm.title.trim()) {
 
       setError(
-        'Please enter a task title.'
+        tr('errorTaskTitle')
       )
 
       return
@@ -589,7 +869,7 @@ export default function ProjectDetailPage({
 
       setError(
         err.response?.data?.detail ||
-          'Could not create task.'
+          tr('errorCreateTask')
       )
 
     } finally {
@@ -726,7 +1006,7 @@ export default function ProjectDetailPage({
 
       setError(
         err.response?.data?.detail ||
-          'Could not save project impact.'
+          tr('errorSaveImpact')
       )
 
     } finally {
@@ -750,7 +1030,7 @@ export default function ProjectDetailPage({
       if (!deliverableForm.title.trim()) {
 
         setError(
-          'Please enter a deliverable title.'
+          tr('errorDeliverableTitle')
         )
 
         return
@@ -796,7 +1076,7 @@ export default function ProjectDetailPage({
 
         setError(
           err.response?.data?.detail ||
-            'Could not submit deliverable.'
+            tr('errorSubmitDeliverable')
         )
 
       } finally {
@@ -874,7 +1154,7 @@ export default function ProjectDetailPage({
       ) {
 
         setError(
-          'Please describe your collaboration offer.'
+          tr('errorCollaborationDescription')
         )
 
         return
@@ -888,7 +1168,7 @@ export default function ProjectDetailPage({
       ) {
 
         setError(
-          'Please enter the funding amount.'
+          tr('errorFundingAmount')
         )
 
         return
@@ -943,7 +1223,7 @@ export default function ProjectDetailPage({
 
         setError(
           err.response?.data?.detail ||
-            'Could not submit collaboration offer.'
+            tr('errorCollaboration')
         )
 
       } finally {
@@ -990,7 +1270,7 @@ export default function ProjectDetailPage({
 
         setError(
           err.response?.data?.detail ||
-            'Could not update collaboration.'
+            tr('errorUpdateCollaboration')
         )
 
       } finally {
@@ -1012,8 +1292,7 @@ export default function ProjectDetailPage({
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
 
         <p className="text-slate-600">
-          Loading project...
-        </p>
+          {tr('loadingProject')}</p>
 
       </div>
     )
@@ -1089,7 +1368,7 @@ export default function ProjectDetailPage({
           <div>
 
             <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-              Project #{project.id}
+              {tr('project')} #{project.id}
             </p>
 
             <h1 className="mt-2 text-3xl font-bold text-slate-900">
@@ -1116,12 +1395,11 @@ export default function ProjectDetailPage({
           <div className="rounded-2xl bg-slate-50 p-4">
 
             <div className="text-xs uppercase tracking-[0.15em] text-slate-500">
-              University
-            </div>
+              {tr('university')}</div>
 
             <div className="mt-2 text-lg font-semibold text-slate-900">
               {hei?.name ||
-                `HEI #${project.hei_id}`}
+                `${tr('hei')} #${project.hei_id}`}
             </div>
 
           </div>
@@ -1130,15 +1408,12 @@ export default function ProjectDetailPage({
           <div className="rounded-2xl bg-slate-50 p-4">
 
             <div className="text-xs uppercase tracking-[0.15em] text-slate-500">
-              Start date
-            </div>
+              {tr('startDate')}</div>
 
             <div className="mt-2 text-lg font-semibold text-slate-900">
               {project.start_date
-                ? new Date(
-                    project.start_date
-                  ).toLocaleDateString()
-                : 'Not started'}
+                ? formatDate(project.start_date)
+                : tr('notStarted')}
             </div>
 
           </div>
@@ -1147,8 +1422,7 @@ export default function ProjectDetailPage({
           <div className="rounded-2xl bg-slate-50 p-4">
 
             <div className="text-xs uppercase tracking-[0.15em] text-slate-500">
-              Challenge
-            </div>
+              {tr('challenge')}</div>
 
             <div className="mt-2 text-lg font-semibold text-slate-900">
               #{project.challenge_id}
@@ -1163,7 +1437,7 @@ export default function ProjectDetailPage({
 
       {/* PROJECT LIFECYCLE */}
 
-      <Card title="Project Lifecycle">
+      <Card title={tr('projectLifecycle')}>
 
         <div className="overflow-x-auto pb-2">
 
@@ -1217,7 +1491,7 @@ export default function ProjectDetailPage({
                             : 'text-slate-500'
                         }`}
                       >
-                        {status}
+                        {statusLabel(status)}
                       </p>
 
                     </div>
@@ -1242,9 +1516,7 @@ export default function ProjectDetailPage({
 
 
         <p className="mt-4 text-sm text-slate-500">
-          Click a stage to update the
-          project's current lifecycle status.
-        </p>
+          {tr('clickStage')}</p>
 
       </Card>
 
@@ -1253,15 +1525,14 @@ export default function ProjectDetailPage({
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
 
-        <Card title="Overview">
+        <Card title={tr('overview')}>
 
           <div className="space-y-5">
 
             <div className="flex items-center justify-between text-sm text-slate-600">
 
               <span>
-                Project progress
-              </span>
+                {tr('projectProgress')}</span>
 
               <span>
                 {progress}%
@@ -1286,8 +1557,7 @@ export default function ProjectDetailPage({
                 <Users className="h-5 w-5 text-slate-500" />
 
                 <div className="mt-3 text-sm text-slate-500">
-                  Project members
-                </div>
+                  {tr('projectMembers')}</div>
 
                 <div className="mt-1 font-semibold text-slate-900">
                   {members.length}
@@ -1301,12 +1571,11 @@ export default function ProjectDetailPage({
                 <Building2 className="h-5 w-5 text-slate-500" />
 
                 <div className="mt-3 text-sm text-slate-500">
-                  HEI
-                </div>
+                  {tr('hei')}</div>
 
                 <div className="mt-1 font-semibold text-slate-900">
                   {hei?.code ||
-                    `HEI #${project.hei_id}`}
+                    `${tr('hei')} #${project.hei_id}`}
                 </div>
 
               </div>
@@ -1318,14 +1587,12 @@ export default function ProjectDetailPage({
         </Card>
 
 
-        <Card title="Team">
+        <Card title={tr('team')}>
 
           {members.length === 0 ? (
 
             <p className="text-sm text-slate-500">
-              No project members have been
-              added yet.
-            </p>
+              {tr('noMembers')}</p>
 
           ) : (
 
@@ -1361,7 +1628,7 @@ export default function ProjectDetailPage({
 
       {/* MILESTONES */}
 
-      <Card title="Milestones">
+      <Card title={tr('milestones')}>
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
@@ -1386,8 +1653,8 @@ export default function ProjectDetailPage({
               <Plus className="mr-2 h-4 w-4" />
 
               {showMilestoneForm
-                ? 'Cancel'
-                : 'Add milestone'}
+                ? tr('cancel')
+                : tr('addMilestone')}
             </Button>
 
           </div>
@@ -1410,8 +1677,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  Milestone title
-                </label>
+                  {tr('milestoneTitle')}</label>
 
                 <input
                   type="text"
@@ -1427,7 +1693,7 @@ export default function ProjectDetailPage({
                       })
                     )
                   }
-                  placeholder="e.g. Field Assessment"
+                  placeholder={tr('fieldAssessment')}
                   className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
                 />
 
@@ -1437,8 +1703,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  Milestone order
-                </label>
+                  {tr('milestoneOrder')}</label>
 
                 <input
                   type="number"
@@ -1467,8 +1732,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <label className="block text-sm font-medium text-slate-700">
-                Description
-              </label>
+                {tr('description')}</label>
 
               <textarea
                 rows={4}
@@ -1484,7 +1748,7 @@ export default function ProjectDetailPage({
                     })
                   )
                 }
-                placeholder="Describe what needs to be completed..."
+                placeholder={tr('describeCompleted')}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
               />
 
@@ -1494,8 +1758,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <label className="block text-sm font-medium text-slate-700">
-                Due date
-              </label>
+                {tr('dueDate')}</label>
 
               <input
                 type="date"
@@ -1525,8 +1788,8 @@ export default function ProjectDetailPage({
                 }
               >
                 {milestoneLoading
-                  ? 'Creating...'
-                  : 'Create milestone'}
+                  ? tr('creating')
+                  : tr('createMilestone')}
               </Button>
 
             </div>
@@ -1541,9 +1804,7 @@ export default function ProjectDetailPage({
           <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
 
             <p className="text-sm text-slate-500">
-              No milestones have been
-              created for this project yet.
-            </p>
+              {tr('noMilestones')}</p>
 
           </div>
 
@@ -1613,7 +1874,7 @@ export default function ProjectDetailPage({
 
 
                       <span className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-                        {milestone.status}
+                        {statusLabel(milestone.status)}
                       </span>
 
                     </div>
@@ -1633,9 +1894,7 @@ export default function ProjectDetailPage({
                       <span>
                         Due date:{' '}
                         {milestone.due_date
-                          ? new Date(
-                              milestone.due_date
-                            ).toLocaleDateString()
+                          ? formatDate(milestone.due_date)
                           : 'Not set'}
                       </span>
 
@@ -1673,8 +1932,7 @@ export default function ProjectDetailPage({
                               )
                             }
                           >
-                            Mark in progress
-                          </Button>
+                            {tr('markInProgress')}</Button>
 
                         )}
 
@@ -1694,8 +1952,7 @@ export default function ProjectDetailPage({
                             }
                           >
                             <CheckCircle2 className="mr-2 h-4 w-4" />
-                            Mark completed
-                          </Button>
+                            {tr('markCompleted')}</Button>
 
                         )}
 
@@ -1717,7 +1974,7 @@ export default function ProjectDetailPage({
       </Card>
             {/* TASKS */}
 
-      <Card title="Project Tasks">
+      <Card title={tr('projectTasks')}>
 
         {!collaborationMode && (
           <div className="mb-5 flex justify-end">
@@ -1733,8 +1990,8 @@ export default function ProjectDetailPage({
               <Plus className="mr-2 h-4 w-4" />
 
               {showTaskForm
-                ? 'Cancel'
-                : 'Add task'}
+                ? tr('cancel')
+                : tr('addTask')}
             </Button>
 
           </div>
@@ -1754,8 +2011,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  Task title
-                </label>
+                  {tr('taskTitle')}</label>
 
                 <input
                   type="text"
@@ -1769,7 +2025,7 @@ export default function ProjectDetailPage({
                       })
                     )
                   }
-                  placeholder="e.g. Conduct village survey"
+                  placeholder={tr('conductSurvey')}
                   className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
                 />
 
@@ -1779,8 +2035,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  Assign to
-                </label>
+                  {tr('assignTo')}</label>
 
                 <select
                   value={taskForm.assigned_to}
@@ -1797,8 +2052,7 @@ export default function ProjectDetailPage({
                 >
 
                   <option value="">
-                    Unassigned
-                  </option>
+                    {tr('unassigned')}</option>
 
                   {members.map(
                     (member) => (
@@ -1809,7 +2063,7 @@ export default function ProjectDetailPage({
                           member.user_id
                         }
                       >
-                        User #
+                        {tr('user')} #
                         {member.user_id}
 
                         {member.role
@@ -1826,9 +2080,7 @@ export default function ProjectDetailPage({
                 {members.length === 0 && (
 
                   <p className="mt-2 text-xs text-slate-500">
-                    Add project members first
-                    to assign a task.
-                  </p>
+                    {tr('addMembersFirst')}</p>
 
                 )}
 
@@ -1840,8 +2092,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <label className="block text-sm font-medium text-slate-700">
-                Description
-              </label>
+                {tr('description')}</label>
 
               <textarea
                 rows={4}
@@ -1857,7 +2108,7 @@ export default function ProjectDetailPage({
                     })
                   )
                 }
-                placeholder="Describe what needs to be done..."
+                placeholder={tr('describeDone')}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
               />
 
@@ -1867,8 +2118,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <label className="block text-sm font-medium text-slate-700">
-                Due date
-              </label>
+                {tr('dueDate')}</label>
 
               <input
                 type="date"
@@ -1896,8 +2146,8 @@ export default function ProjectDetailPage({
                 disabled={taskLoading}
               >
                 {taskLoading
-                  ? 'Creating...'
-                  : 'Create task'}
+                  ? tr('creating')
+                  : tr('createTask')}
               </Button>
 
             </div>
@@ -1912,9 +2162,7 @@ export default function ProjectDetailPage({
           <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
 
             <p className="text-sm text-slate-500">
-              No tasks have been created
-              for this project yet.
-            </p>
+              {tr('noTasks')}</p>
 
           </div>
 
@@ -1950,7 +2198,7 @@ export default function ProjectDetailPage({
                     {task.assigned_to && (
 
                       <p className="mt-2 text-xs text-slate-500">
-                        Assigned to: User #
+                        {tr('assignedToUser')} {tr('user')} #
                         {task.assigned_to}
                       </p>
 
@@ -1960,10 +2208,8 @@ export default function ProjectDetailPage({
                     {task.due_date && (
 
                       <p className="mt-2 text-xs text-slate-500">
-                        Due:{' '}
-                        {new Date(
-                          task.due_date
-                        ).toLocaleDateString()}
+                        {tr('due')}{' '}
+                        {formatDate(task.due_date)}
                       </p>
 
                     )}
@@ -1982,7 +2228,7 @@ export default function ProjectDetailPage({
                           : 'bg-amber-100 text-amber-700'
                     }`}
                   >
-                    {task.status}
+                    {statusLabel(task.status)}
                   </span>
 
                 </div>
@@ -2009,8 +2255,7 @@ export default function ProjectDetailPage({
                           )
                         }
                       >
-                        Mark in progress
-                      </Button>
+                        {tr('markInProgress')}</Button>
 
                     )}
 
@@ -2028,8 +2273,7 @@ export default function ProjectDetailPage({
                     >
                       <CheckCircle2 className="mr-2 h-4 w-4" />
 
-                      Mark completed
-                    </Button>
+                      {tr('markCompleted')}</Button>
 
                   </div>
 
@@ -2048,7 +2292,7 @@ export default function ProjectDetailPage({
 
       {/* DELIVERABLES */}
 
-      <Card title="Project Deliverables">
+      <Card title={tr('projectDeliverables')}>
 
         {!collaborationMode && (
 
@@ -2065,8 +2309,8 @@ export default function ProjectDetailPage({
               <Plus className="mr-2 h-4 w-4" />
 
               {showDeliverableForm
-                ? 'Cancel'
-                : 'Add deliverable'}
+                ? tr('cancel')
+                : tr('addDeliverable')}
             </Button>
 
           </div>
@@ -2087,8 +2331,7 @@ export default function ProjectDetailPage({
             <div>
 
               <label className="block text-sm font-medium text-slate-700">
-                Deliverable title
-              </label>
+                {tr('deliverableTitle')}</label>
 
               <input
                 type="text"
@@ -2104,7 +2347,7 @@ export default function ProjectDetailPage({
                     })
                   )
                 }
-                placeholder="e.g. Water monitoring prototype"
+                placeholder={tr('waterPrototype')}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
               />
 
@@ -2114,8 +2357,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <label className="block text-sm font-medium text-slate-700">
-                Description
-              </label>
+                {tr('description')}</label>
 
               <textarea
                 rows={4}
@@ -2131,7 +2373,7 @@ export default function ProjectDetailPage({
                     })
                   )
                 }
-                placeholder="Describe the project output..."
+                placeholder={tr('describeOutput')}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
               />
 
@@ -2146,8 +2388,8 @@ export default function ProjectDetailPage({
                 }
               >
                 {deliverableLoading
-                  ? 'Submitting...'
-                  : 'Submit deliverable'}
+                  ? tr('submitting')
+                  : tr('submitDeliverable')}
               </Button>
 
             </div>
@@ -2162,9 +2404,7 @@ export default function ProjectDetailPage({
           <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
 
             <p className="text-sm text-slate-500">
-              No deliverables have been
-              submitted yet.
-            </p>
+              {tr('noDeliverables')}</p>
 
           </div>
 
@@ -2201,10 +2441,8 @@ export default function ProjectDetailPage({
                       {deliverable.submitted_at && (
 
                         <p className="mt-2 text-xs text-slate-500">
-                          Submitted:{' '}
-                          {new Date(
-                            deliverable.submitted_at
-                          ).toLocaleDateString()}
+                          {tr('submitted')}{' '}
+                          {formatDate(deliverable.submitted_at)}
                         </p>
 
                       )}
@@ -2226,7 +2464,7 @@ export default function ProjectDetailPage({
                               : 'bg-amber-100 text-amber-700'
                       }`}
                     >
-                      {deliverable.status}
+                      {statusLabel(deliverable.status)}
                     </span>
 
                   </div>
@@ -2250,8 +2488,7 @@ export default function ProjectDetailPage({
                         }
                       >
                         <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Approve
-                      </Button>
+                        {tr('approve')}</Button>
 
 
                       <Button
@@ -2266,8 +2503,7 @@ export default function ProjectDetailPage({
                           )
                         }
                       >
-                        Reject
-                      </Button>
+                        {tr('reject')}</Button>
 
                     </div>
 
@@ -2287,7 +2523,7 @@ export default function ProjectDetailPage({
 
       {/* PROJECT IMPACT */}
 
-      <Card title="Project Impact">
+      <Card title={tr('projectImpact')}>
 
         {!collaborationMode && !impact && (
 
@@ -2304,8 +2540,8 @@ export default function ProjectDetailPage({
               <Plus className="mr-2 h-4 w-4" />
 
               {showImpactForm
-                ? 'Cancel'
-                : 'Add impact'}
+                ? tr('cancel')
+                : tr('addImpact')}
             </Button>
 
           </div>
@@ -2327,8 +2563,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  People benefited
-                </label>
+                  {tr('peopleBenefited')}</label>
 
                 <input
                   type="number"
@@ -2354,8 +2589,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  Villages covered
-                </label>
+                  {tr('villagesCovered')}</label>
 
                 <input
                   type="number"
@@ -2381,8 +2615,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  Districts covered
-                </label>
+                  {tr('districtsCovered')}</label>
 
                 <input
                   type="number"
@@ -2408,7 +2641,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  Cost savings (₹)
+                  {tr('costSavings')} (₹)
                 </label>
 
                 <input
@@ -2437,8 +2670,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <label className="block text-sm font-medium text-slate-700">
-                Environmental impact
-              </label>
+                {tr('environmentalImpact')}</label>
 
               <textarea
                 rows={3}
@@ -2454,7 +2686,7 @@ export default function ProjectDetailPage({
                     })
                   )
                 }
-                placeholder="e.g. Reduced water wastage..."
+                placeholder={tr('reducedWaste')}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
               />
 
@@ -2464,8 +2696,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <label className="block text-sm font-medium text-slate-700">
-                Outcome
-              </label>
+                {tr('outcome')}</label>
 
               <textarea
                 rows={3}
@@ -2481,7 +2712,7 @@ export default function ProjectDetailPage({
                     })
                   )
                 }
-                placeholder="Describe the result of the project..."
+                placeholder={tr('describeResult')}
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
               />
 
@@ -2491,8 +2722,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <label className="block text-sm font-medium text-slate-700">
-                Deployment status
-              </label>
+                {tr('deploymentStatus')}</label>
 
               <select
                 value={
@@ -2511,12 +2741,10 @@ export default function ProjectDetailPage({
               >
 
                 <option value="NOT_DEPLOYED">
-                  Not deployed
-                </option>
+                  {tr('notDeployed')}</option>
 
                 <option value="DEPLOYED">
-                  Deployed
-                </option>
+                  {tr('deployed')}</option>
 
               </select>
 
@@ -2538,8 +2766,8 @@ export default function ProjectDetailPage({
                 disabled={impactLoading}
               >
                 {impactLoading
-                  ? 'Saving...'
-                  : 'Save impact'}
+                  ? tr('saving')
+                  : tr('saveImpact')}
               </Button>
 
             </div>
@@ -2569,8 +2797,7 @@ export default function ProjectDetailPage({
               <div className="rounded-2xl bg-slate-50 p-4">
 
                 <p className="text-sm text-slate-500">
-                  People benefited
-                </p>
+                  {tr('peopleBenefited')}</p>
 
                 <p className="mt-2 text-2xl font-bold text-slate-900">
                   {Number(
@@ -2584,8 +2811,7 @@ export default function ProjectDetailPage({
               <div className="rounded-2xl bg-slate-50 p-4">
 
                 <p className="text-sm text-slate-500">
-                  Villages covered
-                </p>
+                  {tr('villagesCovered')}</p>
 
                 <p className="mt-2 text-2xl font-bold text-slate-900">
                   {impact.villages_covered}
@@ -2597,8 +2823,7 @@ export default function ProjectDetailPage({
               <div className="rounded-2xl bg-slate-50 p-4">
 
                 <p className="text-sm text-slate-500">
-                  Districts covered
-                </p>
+                  {tr('districtsCovered')}</p>
 
                 <p className="mt-2 text-2xl font-bold text-slate-900">
                   {impact.districts_covered}
@@ -2610,8 +2835,7 @@ export default function ProjectDetailPage({
               <div className="rounded-2xl bg-slate-50 p-4">
 
                 <p className="text-sm text-slate-500">
-                  Cost savings
-                </p>
+                  {tr('costSavings')}</p>
 
                 <p className="mt-2 text-2xl font-bold text-slate-900">
                   ₹
@@ -2630,8 +2854,7 @@ export default function ProjectDetailPage({
               <div className="mt-4 rounded-2xl border border-slate-200 p-4">
 
                 <p className="text-sm font-semibold text-slate-900">
-                  Outcome
-                </p>
+                  {tr('outcome')}</p>
 
                 <p className="mt-1 text-sm leading-6 text-slate-600">
                   {impact.outcome}
@@ -2647,8 +2870,7 @@ export default function ProjectDetailPage({
               <div className="mt-4 rounded-2xl border border-slate-200 p-4">
 
                 <p className="text-sm font-semibold text-slate-900">
-                  Environmental impact
-                </p>
+                  {tr('environmentalImpact')}</p>
 
                 <p className="mt-1 text-sm leading-6 text-slate-600">
                   {impact.environmental_impact}
@@ -2662,7 +2884,7 @@ export default function ProjectDetailPage({
             <div className="mt-4">
 
               <span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-slate-700">
-                {impact.deployment_status}
+                {statusLabel(impact.deployment_status)}
               </span>
 
             </div>
@@ -2678,16 +2900,14 @@ export default function ProjectDetailPage({
 
       {!collaborationMode && (
 
-        <Card title="Industry collaboration">
+        <Card title={tr('industryCollaboration')}>
 
           {collaborations.length === 0 ? (
 
             <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
 
               <p className="text-sm text-slate-500">
-                No industry collaboration
-                offers yet.
-              </p>
+                {tr('noIndustryOffers')}</p>
 
             </div>
 
@@ -2708,9 +2928,9 @@ export default function ProjectDetailPage({
                       <div>
 
                         <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
-                          {
+                          {supportTypeLabel(
                             collaboration.support_type
-                          }
+                          )}
                         </p>
 
                         {collaboration.funding_amount !==
@@ -2778,8 +2998,7 @@ export default function ProjectDetailPage({
                             )
                           }
                         >
-                          Accept
-                        </Button>
+                          {tr('accept')}</Button>
 
 
                         <Button
@@ -2794,8 +3013,7 @@ export default function ProjectDetailPage({
                             )
                           }
                         >
-                          Reject
-                        </Button>
+                          {tr('reject')}</Button>
 
                       </div>
 
@@ -2818,8 +3036,7 @@ export default function ProjectDetailPage({
                             )
                           }
                         >
-                          Start collaboration
-                        </Button>
+                          {tr('startCollaboration')}</Button>
 
                       </div>
 
@@ -2844,8 +3061,7 @@ export default function ProjectDetailPage({
                         >
                           <CheckCircle2 className="mr-2 h-4 w-4" />
 
-                          Mark completed
-                        </Button>
+                          {tr('markCompleted')}</Button>
 
                       </div>
 
@@ -2870,7 +3086,7 @@ export default function ProjectDetailPage({
       {collaborationMode && (
         <>
 
-          <Card title="Offer collaboration">
+          <Card title={tr('offerCollaboration')}>
 
             <form
               onSubmit={
@@ -2886,8 +3102,7 @@ export default function ProjectDetailPage({
                   <Handshake className="h-5 w-5 text-slate-500" />
 
                   <label className="mt-3 block text-sm font-medium text-slate-700">
-                    Support type
-                  </label>
+                    {tr('supportType')}</label>
 
                   <select
                     value={
@@ -2908,28 +3123,22 @@ export default function ProjectDetailPage({
                   >
 
                     <option value="MENTORSHIP">
-                      Mentorship
-                    </option>
+                      {tr('mentorship')}</option>
 
                     <option value="FUNDING">
-                      Funding
-                    </option>
+                      {tr('funding')}</option>
 
                     <option value="PROTOTYPING">
-                      Prototyping
-                    </option>
+                      {tr('prototyping')}</option>
 
                     <option value="TESTING">
-                      Testing
-                    </option>
+                      {tr('testing')}</option>
 
                     <option value="PILOT">
-                      Pilot Deployment
-                    </option>
+                      {tr('pilotDeployment')}</option>
 
                     <option value="DEPLOYMENT">
-                      Deployment
-                    </option>
+                      {tr('deployment')}</option>
 
                   </select>
 
@@ -2944,8 +3153,7 @@ export default function ProjectDetailPage({
                     <HandCoins className="h-5 w-5 text-slate-500" />
 
                     <label className="mt-3 block text-sm font-medium text-slate-700">
-                      Funding amount (₹)
-                    </label>
+                      {tr('fundingAmount')}</label>
 
                     <input
                       type="number"
@@ -2976,8 +3184,7 @@ export default function ProjectDetailPage({
               <div>
 
                 <label className="block text-sm font-medium text-slate-700">
-                  Collaboration details
-                </label>
+                  {tr('collaborationDetails')}</label>
 
                 <textarea
                   rows={5}
@@ -2994,7 +3201,7 @@ export default function ProjectDetailPage({
                     )
                   }
                   className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm"
-                  placeholder="Describe how your organization can support this project..."
+                  placeholder={tr('supportDescription')}
                 />
 
               </div>
@@ -3017,8 +3224,8 @@ export default function ProjectDetailPage({
                   }
                 >
                   {collaborationLoading
-                    ? 'Submitting...'
-                    : 'Offer collaboration'}
+                    ? tr('submitting')
+                    : tr('offerCollaboration')}
                 </Button>
 
               </div>
@@ -3028,16 +3235,14 @@ export default function ProjectDetailPage({
           </Card>
 
 
-          <Card title="Collaboration offers">
+          <Card title={tr('collaborationOffers')}>
 
             {collaborations.length === 0 ? (
 
               <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
 
                 <p className="text-sm text-slate-500">
-                  No collaboration offers
-                  have been made yet.
-                </p>
+                  {tr('noOffers')}</p>
 
               </div>
 
@@ -3097,9 +3302,9 @@ export default function ProjectDetailPage({
                                     : 'bg-amber-100 text-amber-700'
                           }`}
                         >
-                          {
+                          {statusLabel(
                             collaboration.status
-                          }
+                          )}
                         </span>
 
                       </div>

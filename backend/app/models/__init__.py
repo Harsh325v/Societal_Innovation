@@ -20,3 +20,4 @@ from app.models.project import Project
 from app.models.industry_collaboration import IndustryCollaboration
 from app.models.project_task import ProjectTask
 from app.models.scientist_review import ScientistReview
+from app.models.sms_notification import SMSNotification

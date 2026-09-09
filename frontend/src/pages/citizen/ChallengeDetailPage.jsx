@@ -1,17 +1,28 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import {
-  MapPin, FileText, Sparkles, UserCheck, CheckCircle2, Clock3,
-  ArrowLeft, Users, Building2, AlertCircle, Microscope,
+  MapPin,
+  FileText,
+  Sparkles,
+  UserCheck,
+  CheckCircle2,
+  Clock3,
+  ArrowLeft,
+  Users,
+  Building2,
+  AlertCircle,
+  Microscope,
 } from 'lucide-react'
 
 import Badge from '../../components/common/Badge'
 import Card from '../../components/common/Card'
 import { challengeService } from '../../services/challengeService'
 import { heiService } from '../../services/heiService'
+import { useTranslation } from '../../i18n/useTranslation'
 
 export default function ChallengeDetailPage() {
   const { id } = useParams()
+  const { t, language } = useTranslation()
 
   const [challenge, setChallenge] = useState(null)
   const [aiAnalysis, setAiAnalysis] = useState(null)
@@ -28,10 +39,17 @@ export default function ChallengeDetailPage() {
         setLoading(true)
         setError('')
 
-        const challengeResponse = await challengeService.getChallengeById(id)
-        const aiResponse = await challengeService.getAIAnalysis(id)
-        const matchesResponse = await challengeService.getHEIMatches(id)
-        const facultyResponse = await challengeService.getFacultyMatches(id)
+        const challengeResponse =
+          await challengeService.getChallengeById(id)
+
+        const aiResponse =
+          await challengeService.getAIAnalysis(id)
+
+        const matchesResponse =
+          await challengeService.getHEIMatches(id)
+
+        const facultyResponse =
+          await challengeService.getFacultyMatches(id)
 
         const scientistResponse = await fetch(
           `http://127.0.0.1:8000/api/v1/scientist-reviews/challenge/${id}`,
@@ -54,8 +72,11 @@ export default function ChallengeDetailPage() {
         setAiAnalysis(aiResponse.data)
         setHeiMatches(heiMatchData)
         setFacultyMatches(facultyMatchData)
+
         setScientistReviews(
-          Array.isArray(scientistReviewData) ? scientistReviewData : []
+          Array.isArray(scientistReviewData)
+            ? scientistReviewData
+            : []
         )
 
         const details = {}
@@ -63,10 +84,15 @@ export default function ChallengeDetailPage() {
         await Promise.all(
           heiMatchData.map(async (match) => {
             try {
-              const heiResponse = await heiService.getHEIById(match.hei_id)
+              const heiResponse =
+                await heiService.getHEIById(match.hei_id)
+
               details[match.hei_id] = heiResponse.data
             } catch (err) {
-              console.error(`Could not load HEI ${match.hei_id}`, err)
+              console.error(
+                `Could not load HEI ${match.hei_id}`,
+                err
+              )
             }
           })
         )
@@ -74,8 +100,10 @@ export default function ChallengeDetailPage() {
         setHeiDetails(details)
       } catch (err) {
         console.error(err)
+
         setError(
           err.response?.data?.detail ||
+            t('couldNotLoadProblem') ||
             'Could not load problem details.'
         )
       } finally {
@@ -88,17 +116,17 @@ export default function ChallengeDetailPage() {
 
   const getStatusLabel = (status) => {
     const labels = {
-      OPEN: 'Under review',
-      RESOLVED: 'Resolved',
-      IN_REVIEW: 'Under review',
-      UNIVERSITY_MATCHED: 'University matched',
-      FACULTY_MATCHED: 'Expert matched',
-      IN_PROGRESS: 'Solution in progress',
-      PROTOTYPE: 'Solution being built',
-      TESTING: 'Being tested',
-      PILOT: 'Pilot stage',
-      DEPLOYED: 'Solution deployed',
-      COMPLETED: 'Completed',
+      OPEN: t('underReview'),
+      RESOLVED: t('resolved'),
+      IN_REVIEW: t('underReview'),
+      UNIVERSITY_MATCHED: t('universityMatched'),
+      FACULTY_MATCHED: t('expertMatched'),
+      IN_PROGRESS: t('solutionInProgress'),
+      PROTOTYPE: t('solutionBeingBuilt'),
+      TESTING: t('beingTested'),
+      PILOT: t('pilotStage'),
+      DEPLOYED: t('solutionDeployed'),
+      COMPLETED: t('completed'),
     }
 
     return (
@@ -118,7 +146,13 @@ export default function ChallengeDetailPage() {
     if (status === 'PILOT') return 4
     if (status === 'TESTING') return 3
 
-    if (status === 'PROTOTYPE' || status === 'IN_PROGRESS') return 2
+    if (
+      status === 'PROTOTYPE' ||
+      status === 'IN_PROGRESS'
+    ) {
+      return 2
+    }
+
     if (facultyMatches.length > 0) return 2
     if (heiMatches.length > 0) return 1
 
@@ -128,7 +162,9 @@ export default function ChallengeDetailPage() {
   if (loading) {
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
-        <p className="text-slate-600">Loading your problem...</p>
+        <p className="text-slate-600">
+          {t('loadingProblems') || 'Loading your problem...'}
+        </p>
       </div>
     )
   }
@@ -136,7 +172,9 @@ export default function ChallengeDetailPage() {
   if (error || !challenge) {
     return (
       <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
-        <p className="text-red-600">{error || 'Problem not found.'}</p>
+        <p className="text-red-600">
+          {error || t('problemNotFound') || 'Problem not found.'}
+        </p>
       </div>
     )
   }
@@ -149,9 +187,21 @@ export default function ChallengeDetailPage() {
     0
 
   const priority =
-    priorityScore >= 70 ? 'High' :
-    priorityScore >= 40 ? 'Medium' :
-    'Low'
+    priorityScore >= 70
+      ? t('highPriority')
+      : priorityScore >= 40
+        ? t('mediumPriority')
+        : t('lowPriority')
+
+  const displayTitle =
+    language === 'hi'
+      ? challenge.title_hi || challenge.title
+      : challenge.title_en || challenge.title
+
+  const displayDescription =
+    language === 'hi'
+      ? challenge.description_hi || challenge.description
+      : challenge.description_en || challenge.description
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -160,19 +210,21 @@ export default function ChallengeDetailPage() {
         className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to My Problems
+        {t('backToMyProblems') || 'Back to My Problems'}
       </Link>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-            Your reported problem
+            {t('reportedProblem') || 'Your reported problem'}
           </p>
+
           <h1 className="mt-2 text-3xl font-bold text-slate-900">
-            {challenge.title}
+            {displayTitle}
           </h1>
+
           <p className="mt-2 text-sm text-slate-500">
-            Problem #{challenge.id}
+            {t('problemNumber') || 'Problem'} #{challenge.id}
           </p>
         </div>
 
@@ -182,8 +234,11 @@ export default function ChallengeDetailPage() {
       </div>
 
       <Card
-        title="What is happening?"
-        subtitle="We will update this journey as your problem moves forward."
+        title={t('whatHappensNext')}
+        subtitle={
+          t('journeyDescription') ||
+          'We will update this journey as your problem moves forward.'
+        }
       >
         <div className="space-y-6">
           <div className="space-y-5">
@@ -191,19 +246,27 @@ export default function ChallengeDetailPage() {
               completed={progress >= 0}
               active={progress === 0}
               icon={FileText}
-              title="Problem submitted"
-              description="Your problem has been received by Sahyog."
+              title={t('problemSubmitted') || 'Problem submitted'}
+              description={
+                t('problemReceived') ||
+                'Your problem has been received by Sahyog.'
+              }
             />
 
             <ProgressStep
               completed={progress >= 1}
               active={progress === 1}
               icon={Building2}
-              title="University matching"
+              title={t('universityMatching')}
               description={
                 heiMatches.length > 0
-                  ? `${heiMatches.length} suitable university recommendation${heiMatches.length > 1 ? 's' : ''} found.`
-                  : 'Sahyog is looking for suitable universities.'
+                  ? language === 'hi'
+                    ? `${heiMatches.length} उपयुक्त विश्वविद्यालय मिले।`
+                    : `${heiMatches.length} suitable university recommendation${
+                        heiMatches.length > 1 ? 's' : ''
+                      } found.`
+                  : t('lookingForUniversities') ||
+                    'Sahyog is looking for suitable universities.'
               }
             />
 
@@ -211,11 +274,16 @@ export default function ChallengeDetailPage() {
               completed={progress >= 2}
               active={progress === 2}
               icon={UserCheck}
-              title="Expert matching"
+              title={t('expertMatching') || 'Expert matching'}
               description={
                 facultyMatches.length > 0
-                  ? `${facultyMatches.length} suitable faculty member${facultyMatches.length > 1 ? 's' : ''} found.`
-                  : 'Suitable experts can be identified based on the problem.'
+                  ? language === 'hi'
+                    ? `${facultyMatches.length} उपयुक्त विशेषज्ञ मिले।`
+                    : `${facultyMatches.length} suitable faculty member${
+                        facultyMatches.length > 1 ? 's' : ''
+                      } found.`
+                  : t('expertsCanBeIdentified') ||
+                    'Suitable experts can be identified based on the problem.'
               }
             />
 
@@ -223,31 +291,41 @@ export default function ChallengeDetailPage() {
               completed={progress >= 3}
               active={progress === 3}
               icon={Sparkles}
-              title="Solution development"
-              description="The problem can move into research and solution development."
+              title={t('solutionDevelopment') || 'Solution development'}
+              description={
+                t('solutionDevelopmentDescription') ||
+                'The problem can move into research and solution development.'
+              }
             />
 
             <ProgressStep
               completed={progress >= 4}
               active={progress === 4}
               icon={Clock3}
-              title="Testing / pilot"
-              description="The solution is tested before wider deployment."
+              title={t('testingPilot') || 'Testing / pilot'}
+              description={
+                t('testingPilotDescription') ||
+                'The solution is tested before wider deployment.'
+              }
             />
 
             <ProgressStep
               completed={progress >= 5}
               active={progress === 5}
               icon={MapPin}
-              title="Deployment"
-              description="The solution reaches the community."
+              title={t('deployment')}
+              description={
+                t('deploymentDescription') ||
+                'The solution reaches the community.'
+              }
             />
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-4">
             <p className="text-sm font-semibold text-slate-900">
-              Current status
+              {t('status')}
             </p>
+
             <p className="mt-1 text-sm text-slate-600">
               {getStatusLabel(challenge.status)}
             </p>
@@ -256,42 +334,55 @@ export default function ChallengeDetailPage() {
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card title="What you reported">
+        <Card title={t('whatYouReported') || 'What you reported'}>
           <div className="space-y-5">
             <p className="text-sm leading-7 text-slate-600">
-              {challenge.description}
+              {displayDescription}
             </p>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <DetailBox
-                label="Category"
-                value={challenge.category || 'Being analyzed'}
+                label={t('category')}
+                value={
+                  challenge.category ||
+                  t('beingAnalyzed') ||
+                  'Being analyzed'
+                }
               />
 
               <DetailBox
-                label="Priority"
-                value={`${priority} (${Math.round(priorityScore)}/100)`}
+                label={t('priority')}
+                value={`${priority} (${Math.round(
+                  priorityScore
+                )}/100)`}
               />
 
               <DetailBox
-                label="Reported on"
+                label={t('reportedOn') || 'Reported on'}
                 value={
                   challenge.created_at
-                    ? new Date(challenge.created_at).toLocaleDateString()
+                    ? new Date(
+                        challenge.created_at
+                      ).toLocaleDateString(
+                        language === 'hi' ? 'hi-IN' : 'en-IN'
+                      )
                     : 'N/A'
                 }
               />
 
               <DetailBox
-                label="People affected"
-                value={challenge.people_affected ?? 'Not provided'}
+                label={t('peopleAffected')}
+                value={
+                  challenge.people_affected ??
+                  (t('notProvided') || 'Not provided')
+                }
               />
             </div>
 
             <div className="rounded-2xl border border-slate-200 p-4">
               <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
                 <MapPin className="h-4 w-4" />
-                Location
+                {t('location')}
               </div>
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -301,30 +392,35 @@ export default function ChallengeDetailPage() {
                   challenge.district,
                 ]
                   .filter(Boolean)
-                  .join(', ') || 'Location not provided'}
+                  .join(', ') ||
+                  t('locationNotProvided')}
               </p>
             </div>
           </div>
         </Card>
 
-        <Card title="Sahyog analysis">
+        <Card title={t('sahyogAnalysis') || 'Sahyog analysis'}>
           <div className="space-y-4">
             <div className="rounded-2xl bg-slate-50 p-4">
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <Sparkles className="h-4 w-4" />
-                Category
+                {t('category')}
               </div>
 
               <p className="mt-2 text-lg font-bold text-slate-900">
                 {aiAnalysis?.category ||
                   challenge.category ||
+                  t('beingAnalyzed') ||
                   'Being analyzed'}
               </p>
 
               {aiAnalysis?.category_confidence != null && (
                 <p className="mt-1 text-xs text-slate-500">
-                  Confidence:{' '}
-                  {Math.round(aiAnalysis.category_confidence * 100)}%
+                  {t('confidence') || 'Confidence'}:{' '}
+                  {Math.round(
+                    aiAnalysis.category_confidence * 100
+                  )}
+                  %
                 </p>
               )}
             </div>
@@ -332,7 +428,7 @@ export default function ChallengeDetailPage() {
             <div className="rounded-2xl bg-slate-50 p-4">
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <AlertCircle className="h-4 w-4" />
-                Priority
+                {t('priority')}
               </div>
 
               <p className="mt-2 text-lg font-bold text-slate-900">
@@ -340,25 +436,29 @@ export default function ChallengeDetailPage() {
               </p>
 
               <p className="mt-1 text-xs text-slate-500">
-                AI priority score: {Math.round(priorityScore)}/100
+                {t('aiPriorityScore') || 'AI priority score'}:{' '}
+                {Math.round(priorityScore)}/100
               </p>
             </div>
 
             <div className="rounded-2xl bg-slate-50 p-4">
               <div className="flex items-center gap-2 text-sm text-slate-500">
                 <Sparkles className="h-4 w-4" />
-                Duplicate check
+                {t('duplicateCheck') || 'Duplicate check'}
               </div>
 
               <p className="mt-2 text-lg font-bold text-slate-900">
                 {aiAnalysis?.is_duplicate
-                  ? 'Similar problem found'
-                  : 'No duplicate found'}
+                  ? t('similarProblemFound') ||
+                    'Similar problem found'
+                  : t('noDuplicateFound') ||
+                    'No duplicate found'}
               </p>
 
               {aiAnalysis?.duplicate_score != null && (
                 <p className="mt-1 text-xs text-slate-500">
-                  Similarity: {aiAnalysis.duplicate_score}
+                  {t('similarity') || 'Similarity'}:{' '}
+                  {aiAnalysis.duplicate_score}
                 </p>
               )}
             </div>
@@ -367,14 +467,19 @@ export default function ChallengeDetailPage() {
       </div>
 
       <Card
-        title="Universities that may help"
-        subtitle="Sahyog looks for institutions with relevant expertise and resources."
+        title={t('universitiesThatMayHelp') || 'Universities that may help'}
+        subtitle={
+          t('universitiesDescription') ||
+          'Sahyog looks for institutions with relevant expertise and resources.'
+        }
       >
         {heiMatches.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
             <Building2 className="mx-auto h-7 w-7 text-slate-400" />
+
             <p className="mt-3 text-sm text-slate-500">
-              University matching information is not available yet.
+              {t('universityMatchingUnavailable') ||
+                'University matching information is not available yet.'}
             </p>
           </div>
         ) : (
@@ -389,21 +494,26 @@ export default function ChallengeDetailPage() {
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <h3 className="text-lg font-semibold text-slate-900">
-                      {hei?.name || `University #${match.hei_id}`}
+                      {hei?.name ||
+                        `${t('university') || 'University'} #${
+                          match.hei_id
+                        }`}
                     </h3>
 
                     <span className="w-fit rounded-full bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white">
-                      {match.match_score}% match
+                      {match.match_score}% {t('match') || 'match'}
                     </span>
                   </div>
 
                   <div className="mt-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                      Why this university?
+                      {t('whyThisUniversity') ||
+                        'Why this university?'}
                     </p>
 
                     <p className="mt-2 text-sm leading-6 text-slate-600">
                       {match.match_reason ||
+                        t('matchedBasedOnExpertise') ||
                         'Matched based on expertise and available resources.'}
                     </p>
                   </div>
@@ -415,14 +525,19 @@ export default function ChallengeDetailPage() {
       </Card>
 
       <Card
-        title="Experts who may help"
-        subtitle="Faculty are matched using expertise, department, research areas and location."
+        title={t('expertsWhoMayHelp') || 'Experts who may help'}
+        subtitle={
+          t('expertsDescription') ||
+          'Faculty are matched using expertise, department, research areas and location.'
+        }
       >
         {facultyMatches.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
             <Users className="mx-auto h-7 w-7 text-slate-400" />
+
             <p className="mt-3 text-sm text-slate-500">
-              No faculty matches are available yet.
+              {t('noFacultyMatches') ||
+                'No faculty matches are available yet.'}
             </p>
           </div>
         ) : (
@@ -439,7 +554,9 @@ export default function ChallengeDetailPage() {
                     </h3>
 
                     <p className="mt-1 text-sm text-slate-600">
-                      {faculty.designation || 'Faculty'}
+                      {faculty.designation ||
+                        t('faculty') ||
+                        'Faculty'}
                     </p>
                   </div>
 
@@ -451,14 +568,14 @@ export default function ChallengeDetailPage() {
                 <div className="mt-4 space-y-2 text-sm text-slate-600">
                   <p>
                     <span className="font-medium text-slate-800">
-                      University:
+                      {t('university')}:
                     </span>{' '}
                     {faculty.hei_name || 'N/A'}
                   </p>
 
                   <p>
                     <span className="font-medium text-slate-800">
-                      Department:
+                      {t('department') || 'Department'}:
                     </span>{' '}
                     {faculty.department_name || 'N/A'}
                   </p>
@@ -467,7 +584,8 @@ export default function ChallengeDetailPage() {
                 {faculty.match_reason && (
                   <div className="mt-4 rounded-xl bg-white p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                      Why this expert?
+                      {t('whyThisExpert') ||
+                        'Why this expert?'}
                     </p>
 
                     <p className="mt-2 text-sm leading-6 text-slate-600">
@@ -477,7 +595,9 @@ export default function ChallengeDetailPage() {
                 )}
 
                 <p className="mt-3 text-xs font-semibold text-slate-500">
-                  Recommendation rank #{faculty.rank}
+                  {t('recommendationRank') ||
+                    'Recommendation rank'}{' '}
+                  #{faculty.rank}
                 </p>
               </div>
             ))}
@@ -486,19 +606,24 @@ export default function ChallengeDetailPage() {
       </Card>
 
       <Card
-        title="Scientific Expert Review"
-        subtitle="Scientists can provide expert observations and recommendations for reported problems."
+        title={t('scientistReview')}
+        subtitle={
+          t('scientistReviewDescription') ||
+          'Scientists can provide expert observations and recommendations for reported problems.'
+        }
       >
         {scientistReviews.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
             <Microscope className="mx-auto h-7 w-7 text-slate-400" />
 
             <p className="mt-3 text-sm text-slate-500">
-              No scientific expert review is available yet.
+              {t('noScientificReview') ||
+                'No scientific expert review is available yet.'}
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
-              A scientist can review this problem and provide a recommendation.
+              {t('scientistCanReview') ||
+                'A scientist can review this problem and provide a recommendation.'}
             </p>
           </div>
         ) : (
@@ -516,7 +641,8 @@ export default function ChallengeDetailPage() {
 
                     <div>
                       <p className="font-semibold text-slate-900">
-                        Scientific Expert
+                        {t('scientificExpert') ||
+                          'Scientific Expert'}
                       </p>
 
                       {review.expertise_area && (
@@ -528,13 +654,16 @@ export default function ChallengeDetailPage() {
                   </div>
 
                   <span className="w-fit rounded-full bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white">
-                    {Math.round(review.confidence * 100)}% confidence
+                    {Math.round(
+                      review.confidence * 100
+                    )}
+                    % {t('confidence') || 'confidence'}
                   </span>
                 </div>
 
                 <div className="mt-5">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Observation
+                    {t('observation') || 'Observation'}
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -544,7 +673,8 @@ export default function ChallengeDetailPage() {
 
                 <div className="mt-4 rounded-xl bg-white p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Recommendation
+                    {t('recommendation') ||
+                      'Recommendation'}
                   </p>
 
                   <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -557,26 +687,30 @@ export default function ChallengeDetailPage() {
         )}
       </Card>
 
-      <Card title="Need help?">
+      <Card title={t('needHelp') || 'Need help?'}>
         <div className="flex flex-col gap-4 rounded-2xl bg-slate-50 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-semibold text-slate-900">
-              Have a question about your problem?
+              {t('haveQuestion') ||
+                'Have a question about your problem?'}
             </p>
 
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              The Sahyog Assistant will help you understand the reporting and solution process.
+              {t('assistantHelpDescription') ||
+                'The Sahyog Assistant will help you understand the reporting and solution process.'}
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => {
-              window.dispatchEvent(new Event('open-sahyog-chat'))
+              window.dispatchEvent(
+                new Event('open-sahyog-chat')
+              )
             }}
             className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
           >
-            Ask Sahyog
+            {t('askSahyog')}
           </button>
         </div>
       </Card>
@@ -614,7 +748,9 @@ function ProgressStep({
       <div className="pb-5">
         <p
           className={`font-semibold ${
-            active ? 'text-slate-900' : 'text-slate-700'
+            active
+              ? 'text-slate-900'
+              : 'text-slate-700'
           }`}
         >
           {title}

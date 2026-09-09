@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams, Link } from 'react-router-dom'
+import {
+  useNavigate,
+  useParams,
+  Link,
+} from 'react-router-dom'
+
 import {
   CheckCircle2,
   XCircle,
@@ -10,11 +15,25 @@ import Button from '../../components/common/Button'
 import Card from '../../components/common/Card'
 import Badge from '../../components/common/Badge'
 
-import { challengeService } from '../../services/challengeService'
-import { heiService } from '../../services/heiService'
-import { proposalService } from '../../services/proposalService'
+import {
+  challengeService,
+} from '../../services/challengeService'
+
+import {
+  heiService,
+} from '../../services/heiService'
+
+import {
+  proposalService,
+} from '../../services/proposalService'
+
+import {
+  useTranslation,
+} from '../../i18n/useTranslation'
 
 export default function UniversityChallengeReview() {
+  const { t, language } = useTranslation()
+
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -32,7 +51,6 @@ export default function UniversityChallengeReview() {
   useEffect(() => {
     const loadChallenge = async () => {
       try {
-        // get the real challenge + AI analysis + HEI matches
         const [
           challengeResponse,
           analysisResponse,
@@ -47,7 +65,6 @@ export default function UniversityChallengeReview() {
         setAnalysis(analysisResponse.data)
         setMatches(matchesResponse.data)
 
-        // get proposals submitted for this challenge
         try {
           const proposalResponse =
             await proposalService.getChallengeProposals(id)
@@ -60,16 +77,18 @@ export default function UniversityChallengeReview() {
           )
         }
 
-        // get the actual HEI details for every recommendation
         const heiData = {}
 
         await Promise.all(
           matchesResponse.data.map(async (match) => {
             try {
               const response =
-                await heiService.getHEIById(match.hei_id)
+                await heiService.getHEIById(
+                  match.hei_id
+                )
 
-              heiData[match.hei_id] = response.data
+              heiData[match.hei_id] =
+                response.data
             } catch (err) {
               console.error(
                 `Could not load HEI ${match.hei_id}`,
@@ -85,7 +104,9 @@ export default function UniversityChallengeReview() {
 
         setError(
           err.response?.data?.detail ||
-            'Could not load challenge details.'
+            (language === 'hi'
+              ? 'समस्या का विवरण लोड नहीं किया जा सका।'
+              : 'Could not load challenge details.')
         )
       } finally {
         setLoading(false)
@@ -93,20 +114,111 @@ export default function UniversityChallengeReview() {
     }
 
     loadChallenge()
-  }, [id])
+  }, [id, language])
 
-  const handleApproveProposal = async (proposalId) => {
+  const getChallengeTitle = (data) => {
+    if (language === 'hi') {
+      return (
+        data?.title_hi ||
+        data?.title_en ||
+        data?.title
+      )
+    }
+
+    return (
+      data?.title_en ||
+      data?.title ||
+      data?.title_hi
+    )
+  }
+
+  const getChallengeDescription = (data) => {
+    if (language === 'hi') {
+      return (
+        data?.description_hi ||
+        data?.description_en ||
+        data?.description
+      )
+    }
+
+    return (
+      data?.description_en ||
+      data?.description ||
+      data?.description_hi
+    )
+  }
+
+  const getCategoryLabel = (category) => {
+    if (!category) {
+      return language === 'hi'
+        ? 'वर्गीकृत नहीं'
+        : 'Not classified'
+    }
+
+    const hindiCategories = {
+      'Water Management': 'जल प्रबंधन',
+      Healthcare: 'स्वास्थ्य सेवा',
+      Agriculture: 'कृषि',
+      Education: 'शिक्षा',
+      Environment: 'पर्यावरण',
+      Energy: 'ऊर्जा',
+      Infrastructure: 'बुनियादी ढाँचा',
+      Sanitation: 'स्वच्छता',
+      Transport: 'परिवहन',
+      Waste: 'कचरा प्रबंधन',
+    }
+
+    return language === 'hi'
+      ? hindiCategories[category] || category
+      : category
+  }
+
+  const getPriority = (score) => {
+    if (score >= 70) return 'High'
+    if (score >= 40) return 'Medium'
+    return 'Low'
+  }
+
+  const getPriorityLabel = (priority) => {
+    if (language === 'hi') {
+      const labels = {
+        High: 'उच्च',
+        Medium: 'मध्यम',
+        Low: 'कम',
+      }
+
+      return labels[priority] || priority
+    }
+
+    return priority
+  }
+
+  const getProposalStatus = (status) => {
+    if (language === 'hi') {
+      const statuses = {
+        PENDING: 'लंबित',
+        APPROVED: 'स्वीकृत',
+        REJECTED: 'अस्वीकृत',
+      }
+
+      return statuses[status] || status
+    }
+
+    return status
+  }
+
+  const handleApproveProposal = async (
+    proposalId
+  ) => {
     try {
       setApprovingProposal(proposalId)
       setError('')
 
-      // approve the proposal and let the backend create the project
       const response =
         await proposalService.approveProposal(
           proposalId
         )
 
-      // take us directly to the newly created project
       navigate(
         `/projects/${response.data.project_id}`
       )
@@ -115,7 +227,9 @@ export default function UniversityChallengeReview() {
 
       setError(
         err.response?.data?.detail ||
-          'Could not approve the proposal.'
+          (language === 'hi'
+            ? 'प्रस्ताव स्वीकृत नहीं किया जा सका।'
+            : 'Could not approve the proposal.')
       )
     } finally {
       setApprovingProposal(null)
@@ -126,7 +240,9 @@ export default function UniversityChallengeReview() {
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
         <p className="text-slate-600">
-          Loading challenge...
+          {language === 'hi'
+            ? 'समस्या लोड हो रही है...'
+            : 'Loading challenge...'}
         </p>
       </div>
     )
@@ -135,7 +251,9 @@ export default function UniversityChallengeReview() {
   if (error && !challenge) {
     return (
       <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
-        <p className="text-red-600">{error}</p>
+        <p className="text-red-600">
+          {error}
+        </p>
       </div>
     )
   }
@@ -144,13 +262,15 @@ export default function UniversityChallengeReview() {
     return null
   }
 
-  let priority = 'Low'
+  const priority = getPriority(
+    challenge.priority_score || 0
+  )
 
-  if (challenge.priority_score >= 70) {
-    priority = 'High'
-  } else if (challenge.priority_score >= 40) {
-    priority = 'Medium'
-  }
+  const challengeTitle =
+    getChallengeTitle(challenge)
+
+  const challengeDescription =
+    getChallengeDescription(challenge)
 
   return (
     <div className="space-y-6">
@@ -160,11 +280,13 @@ export default function UniversityChallengeReview() {
 
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-            Challenge review
+            {language === 'hi'
+              ? 'समस्या समीक्षा'
+              : 'Challenge review'}
           </p>
 
           <h1 className="mt-2 text-3xl font-bold text-slate-900">
-            {challenge.title}
+            {challengeTitle}
           </h1>
         </div>
 
@@ -173,60 +295,87 @@ export default function UniversityChallengeReview() {
       </div>
 
       {/* challenge details */}
-      <Card title="Challenge details">
+      <Card
+        title={
+          language === 'hi'
+            ? 'समस्या का विवरण'
+            : 'Challenge details'
+        }
+      >
 
         <div className="grid gap-4 md:grid-cols-2">
 
           <div className="rounded-2xl bg-slate-50 p-4">
+
             <div className="text-xs uppercase tracking-[0.15em] text-slate-500">
-              Category
+              {t('category')}
             </div>
 
             <div className="mt-2 text-lg font-semibold text-slate-900">
-              {challenge.category || 'Not classified'}
+              {getCategoryLabel(
+                challenge.category
+              )}
             </div>
+
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-4">
+
             <div className="text-xs uppercase tracking-[0.15em] text-slate-500">
-              Priority
+              {t('priority')}
             </div>
 
             <div className="mt-2 text-lg font-semibold text-slate-900">
-              {priority} ({challenge.priority_score}/100)
+              {getPriorityLabel(priority)} (
+              {challenge.priority_score}/100)
             </div>
+
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-4">
+
             <div className="text-xs uppercase tracking-[0.15em] text-slate-500">
-              Challenge ID
+              {t('challenge')} ID
             </div>
 
             <div className="mt-2 text-lg font-semibold text-slate-900">
               #{challenge.id}
             </div>
+
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-4">
+
             <div className="text-xs uppercase tracking-[0.15em] text-slate-500">
-              Submitted
+              {language === 'hi'
+                ? 'जमा किया गया'
+                : 'Submitted'}
             </div>
 
             <div className="mt-2 text-lg font-semibold text-slate-900">
               {new Date(
                 challenge.created_at
-              ).toLocaleDateString()}
+              ).toLocaleDateString(
+                language === 'hi'
+                  ? 'hi-IN'
+                  : 'en-IN'
+              )}
             </div>
+
           </div>
 
           <div className="rounded-2xl bg-slate-50 p-4 md:col-span-2">
+
             <div className="text-xs uppercase tracking-[0.15em] text-slate-500">
-              Problem summary
+              {language === 'hi'
+                ? 'समस्या का सारांश'
+                : 'Problem summary'}
             </div>
 
             <div className="mt-2 text-base leading-7 text-slate-700">
-              {challenge.description}
+              {challengeDescription}
             </div>
+
           </div>
 
         </div>
@@ -235,25 +384,37 @@ export default function UniversityChallengeReview() {
 
       {/* AI analysis */}
       {analysis && (
-        <Card title="AI recommendation explanation">
+        <Card
+          title={
+            language === 'hi'
+              ? 'AI अनुशंसा विवरण'
+              : 'AI recommendation explanation'
+          }
+        >
 
           <div className="rounded-2xl border border-violet-200 bg-violet-50 p-5 text-sm text-violet-900">
 
             <div className="flex items-center gap-2 font-semibold">
               <Sparkles className="h-4 w-4" />
-              AI assessment
+
+              {language === 'hi'
+                ? 'AI आकलन'
+                : 'AI assessment'}
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
 
               <div>
                 <p className="text-xs uppercase tracking-wider text-violet-600">
-                  Category confidence
+                  {language === 'hi'
+                    ? 'श्रेणी विश्वास'
+                    : 'Category confidence'}
                 </p>
 
                 <p className="mt-1 text-lg font-bold">
                   {(
-                    analysis.category_confidence * 100
+                    analysis.category_confidence *
+                    100
                   ).toFixed(1)}
                   %
                 </p>
@@ -261,7 +422,9 @@ export default function UniversityChallengeReview() {
 
               <div>
                 <p className="text-xs uppercase tracking-wider text-violet-600">
-                  Priority score
+                  {language === 'hi'
+                    ? 'प्राथमिकता स्कोर'
+                    : 'Priority score'}
                 </p>
 
                 <p className="mt-1 text-lg font-bold">
@@ -271,13 +434,19 @@ export default function UniversityChallengeReview() {
 
               <div>
                 <p className="text-xs uppercase tracking-wider text-violet-600">
-                  Duplicate check
+                  {language === 'hi'
+                    ? 'डुप्लिकेट जाँच'
+                    : 'Duplicate check'}
                 </p>
 
                 <p className="mt-1 text-lg font-bold">
                   {analysis.is_duplicate
-                    ? 'Possible duplicate'
-                    : 'No duplicate'}
+                    ? language === 'hi'
+                      ? 'संभावित डुप्लिकेट'
+                      : 'Possible duplicate'
+                    : language === 'hi'
+                      ? 'कोई डुप्लिकेट नहीं'
+                      : 'No duplicate'}
                 </p>
               </div>
 
@@ -289,17 +458,26 @@ export default function UniversityChallengeReview() {
       )}
 
       {/* matched HEIs */}
-      <Card title="Recommended HEIs">
+      <Card
+        title={
+          language === 'hi'
+            ? 'अनुशंसित HEI'
+            : 'Recommended HEIs'
+        }
+      >
 
         {matches.length === 0 ? (
           <p className="text-sm text-slate-500">
-            No HEI matches were found for this challenge.
+            {language === 'hi'
+              ? 'इस समस्या के लिए कोई HEI मिलान नहीं मिला।'
+              : 'No HEI matches were found for this challenge.'}
           </p>
         ) : (
           <div className="space-y-4">
 
             {matches.map((match) => {
-              const hei = heis[match.hei_id]
+              const hei =
+                heis[match.hei_id]
 
               return (
                 <div
@@ -310,8 +488,11 @@ export default function UniversityChallengeReview() {
                   <div className="flex items-start justify-between gap-4">
 
                     <div>
+
                       <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
-                        Match #{match.rank}
+                        {language === 'hi'
+                          ? `मिलान #${match.rank}`
+                          : `Match #${match.rank}`}
                       </p>
 
                       <h3 className="mt-1 text-lg font-semibold text-slate-900">
@@ -325,6 +506,7 @@ export default function UniversityChallengeReview() {
                           {hei.state}
                         </p>
                       )}
+
                     </div>
 
                     <div className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-900">
@@ -338,13 +520,17 @@ export default function UniversityChallengeReview() {
                   </p>
 
                   <div className="mt-4">
+
                     <Link
                       to={`/university/proposals/new/${challenge.id}?heiId=${match.hei_id}`}
                     >
                       <Button variant="secondary">
-                        Submit proposal to this HEI
+                        {language === 'hi'
+                          ? 'इस HEI को प्रस्ताव भेजें'
+                          : 'Submit proposal to this HEI'}
                       </Button>
                     </Link>
+
                   </div>
 
                 </div>
@@ -357,7 +543,13 @@ export default function UniversityChallengeReview() {
       </Card>
 
       {/* submitted proposals */}
-      <Card title="Submitted proposals">
+      <Card
+        title={
+          language === 'hi'
+            ? 'जमा किए गए प्रस्ताव'
+            : 'Submitted proposals'
+        }
+      >
 
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
@@ -367,15 +559,18 @@ export default function UniversityChallengeReview() {
 
         {proposals.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center">
+
             <p className="text-sm text-slate-500">
-              No proposals have been submitted for this challenge yet.
+              {language === 'hi'
+                ? 'इस समस्या के लिए अभी कोई प्रस्ताव जमा नहीं किया गया है।'
+                : 'No proposals have been submitted for this challenge yet.'}
             </p>
+
           </div>
         ) : (
           <div className="space-y-4">
 
             {proposals.map((proposal) => {
-
               const proposalHei =
                 heis[proposal.hei_id]
 
@@ -391,8 +586,11 @@ export default function UniversityChallengeReview() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 
                     <div>
+
                       <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
-                        Proposal #{proposal.id}
+                        {language === 'hi'
+                          ? `प्रस्ताव #${proposal.id}`
+                          : `Proposal #${proposal.id}`}
                       </p>
 
                       <h3 className="mt-1 text-lg font-semibold text-slate-900">
@@ -403,6 +601,7 @@ export default function UniversityChallengeReview() {
                         {proposalHei?.name ||
                           `HEI #${proposal.hei_id}`}
                       </p>
+
                     </div>
 
                     <span
@@ -412,7 +611,9 @@ export default function UniversityChallengeReview() {
                           : 'bg-amber-100 text-amber-700'
                       }`}
                     >
-                      {proposal.status}
+                      {getProposalStatus(
+                        proposal.status
+                      )}
                     </span>
 
                   </div>
@@ -424,7 +625,9 @@ export default function UniversityChallengeReview() {
                   <div className="mt-4 rounded-xl bg-slate-50 p-4">
 
                     <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
-                      Proposed solution
+                      {language === 'hi'
+                        ? 'प्रस्तावित समाधान'
+                        : 'Proposed solution'}
                     </p>
 
                     <p className="mt-2 text-sm leading-6 text-slate-700">
@@ -446,12 +649,18 @@ export default function UniversityChallengeReview() {
                           )
                         }
                       >
+
                         <CheckCircle2 className="mr-2 h-4 w-4" />
 
                         {approvingProposal ===
                         proposal.id
-                          ? 'Approving...'
-                          : 'Approve & create project'}
+                          ? language === 'hi'
+                            ? 'स्वीकृत किया जा रहा है...'
+                            : 'Approving...'
+                          : language === 'hi'
+                            ? 'स्वीकृत करें और परियोजना बनाएँ'
+                            : 'Approve & create project'}
+
                       </Button>
 
                       <Button
@@ -461,7 +670,10 @@ export default function UniversityChallengeReview() {
                         }
                       >
                         <XCircle className="mr-2 h-4 w-4" />
-                        Reject
+
+                        {language === 'hi'
+                          ? 'अस्वीकार करें'
+                          : 'Reject'}
                       </Button>
 
                     </div>

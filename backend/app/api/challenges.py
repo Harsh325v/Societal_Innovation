@@ -7,6 +7,7 @@ from app.core.database import SessionLocal
 from app.models.challenge import Challenge
 from app.models.challenge_ai_analysis import ChallengeAIAnalysis
 from app.models.challenge_hei_match import ChallengeHEIMatch
+from app.models.sms_notification import SMSNotification
 from app.models.user import User, UserRole
 
 from app.schemas.challenge import (
@@ -24,6 +25,7 @@ from app.schemas.faculty import FacultyMatchResponse
 from app.services.ai.category import classify_challenge
 from app.services.ai.duplicate import find_duplicate
 from app.services.ai.priority import calculate_priority
+from app.services.ai.translation import translate_text
 
 from app.services.matching.hei_matcher import (
     match_challenge_with_heis,
@@ -79,10 +81,8 @@ CHALLENGE_VIEWER_ROLES = {
 def get_role_value(user: User):
     """
     Return the user's role as a string.
-
-    This keeps authorization checks safe whether SQLAlchemy
-    gives us the enum object or its string value.
     """
+
     if isinstance(user.role, UserRole):
         return user.role.value
 
@@ -94,14 +94,8 @@ def ensure_can_view_challenge(
     current_user: User,
 ):
     """
-    Make sure the current user is allowed to view
-    this challenge.
-
-    Citizens can only access challenges they submitted.
-
-    Other authorized platform roles can discover challenges
-    because they may need them for matching, research,
-    project work, monitoring, collaboration, or scientific review.
+    Make sure the current user is allowed
+    to view this challenge.
     """
 
     role = get_role_value(current_user)
@@ -136,10 +130,10 @@ def create_challenge(
     """
     Create a new societal challenge.
 
-    Allowed:
-    - Citizen
-    - Community organisation
-    - Government
+    The original citizen input is preserved.
+
+    English and Hindi versions are generated so
+    users can view the problem in either language.
     """
 
     role = get_role_value(current_user)
@@ -151,28 +145,83 @@ def create_challenge(
         )
 
     # -----------------------------------------------------
-    # BASIC INPUT VALIDATION
+    # BASIC VALIDATION
     # -----------------------------------------------------
 
-    if not challenge.title.strip():
+    title = challenge.title.strip()
+    description = challenge.description.strip()
+
+    if not title:
         raise HTTPException(
             status_code=400,
             detail="Challenge title cannot be empty",
         )
 
-    if not challenge.description.strip():
+    if not description:
         raise HTTPException(
             status_code=400,
             detail="Challenge description cannot be empty",
         )
 
+    language = challenge.language.lower()
+
+    if language not in {"en", "hi"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Language must be 'en' or 'hi'",
+        )
+
     # -----------------------------------------------------
-    # AI CATEGORY
+    # TRANSLATION
     # -----------------------------------------------------
 
+    if language == "hi":
+        title_hi = title
+        description_hi = description
+
+        title_en = translate_text(
+            title,
+            "hi",
+            "en",
+        )
+
+        description_en = translate_text(
+            description,
+            "hi",
+            "en",
+        )
+
+    else:
+        title_en = title
+        description_en = description
+
+        title_hi = translate_text(
+            title,
+            "en",
+            "hi",
+        )
+
+        description_hi = translate_text(
+            description,
+            "en",
+            "hi",
+        )
+
+    # -----------------------------------------------------
+    # AI ANALYSIS
+    #
+    # Use English when available so existing AI
+    # classification/matching continues to work.
+    # -----------------------------------------------------
+
+    analysis_title = title_en or title
+    analysis_description = (
+        description_en or description
+    )
+
     challenge_text = (
-        f"{challenge.title}. "
-        f"{challenge.description}"
+        f"{analysis_title}. "
+        f"{analysis_description}"
     )
 
     category, category_confidence = classify_challenge(
@@ -202,10 +251,23 @@ def create_challenge(
         .all()
     )
 
-    existing_texts = [
-        f"{item.title}. {item.description}"
-        for item in existing_challenges
-    ]
+    existing_texts = []
+
+    for item in existing_challenges:
+        existing_title = (
+            item.title_en
+            or item.title
+        )
+
+        existing_description = (
+            item.description_en
+            or item.description
+        )
+
+        existing_texts.append(
+            f"{existing_title}. "
+            f"{existing_description}"
+        )
 
     (
         is_duplicate,
@@ -231,9 +293,21 @@ def create_challenge(
 
     new_challenge = Challenge(
         user_id=current_user.id,
-        title=challenge.title.strip(),
-        description=challenge.description.strip(),
 
+        # Original citizen input
+        title=title,
+        description=description,
+
+        # Language
+        source_language=language,
+
+        # Translations
+        title_en=title_en,
+        title_hi=title_hi,
+        description_en=description_en,
+        description_hi=description_hi,
+
+        # Location
         district=challenge.district,
         block=challenge.block,
         locality=challenge.locality,
@@ -241,6 +315,7 @@ def create_challenge(
         latitude=challenge.latitude,
         longitude=challenge.longitude,
 
+        # AI
         category=str(category),
         priority_score=priority_score,
     )
@@ -287,6 +362,36 @@ def create_challenge(
 
         db.add(hei_match)
 
+    # -----------------------------------------------------
+    # SMS NOTIFICATION
+    #
+    # Demo notification layer:
+    # The notification is stored in the database.
+    # A real SMS provider can be connected later.
+    # -----------------------------------------------------
+
+    if current_user.phone:
+        if language == "hi":
+            sms_message = (
+                f"आपकी समस्या सफलतापूर्वक दर्ज कर ली गई है। "
+                f"समस्या ID: {new_challenge.id}"
+            )
+        else:
+            sms_message = (
+                f"Your problem has been received successfully. "
+                f"Problem ID: {new_challenge.id}"
+            )
+
+        sms_notification = SMSNotification(
+            user_id=current_user.id,
+            phone=current_user.phone,
+            message=sms_message,
+            notification_type="PROBLEM_REPORTED",
+            sent=False,
+        )
+
+        db.add(sms_notification)
+
     db.commit()
 
     return new_challenge
@@ -311,7 +416,7 @@ def get_challenges(
         Only their own challenges.
 
     Other authorized platform roles:
-        Can discover challenges for their work.
+        Can discover challenges.
     """
 
     role = get_role_value(current_user)
@@ -441,7 +546,7 @@ def get_hei_matches(
     db: Session = Depends(get_db),
 ):
     """
-    Get university recommendations for a challenge.
+    Get university recommendations.
     """
 
     challenge = (
@@ -492,7 +597,7 @@ def get_faculty_matches(
     db: Session = Depends(get_db),
 ):
     """
-    Get faculty recommendations for a challenge.
+    Get faculty recommendations.
     """
 
     challenge = (

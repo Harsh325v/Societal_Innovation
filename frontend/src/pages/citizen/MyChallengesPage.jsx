@@ -13,10 +13,13 @@ import {
 import Card from '../../components/common/Card'
 import Button from '../../components/common/Button'
 import api from '../../services/api'
+import { useTranslation } from '../../i18n/useTranslation'
 
 const priorities = ['High', 'Medium', 'Low']
 
 export default function MyChallengesPage() {
+  const { t, language } = useTranslation()
+
   const [challenges, setChallenges] = useState([])
 
   const [filters, setFilters] = useState({
@@ -26,14 +29,15 @@ export default function MyChallengesPage() {
   })
 
   const [search, setSearch] = useState('')
-
   const [loading, setLoading] = useState(true)
-
   const [error, setError] = useState('')
 
   useEffect(() => {
     const loadChallenges = async () => {
       try {
+        setLoading(true)
+        setError('')
+
         const response = await api.get('/challenges/')
 
         setChallenges(response.data || [])
@@ -42,7 +46,7 @@ export default function MyChallengesPage() {
 
         setError(
           err.response?.data?.detail ||
-            'Could not load your problems.'
+            t('couldNotLoadProblems')
         )
       } finally {
         setLoading(false)
@@ -50,7 +54,7 @@ export default function MyChallengesPage() {
     }
 
     loadChallenges()
-  }, [])
+  }, [language])
 
   const getPriority = (score) => {
     if (score >= 70) return 'High'
@@ -58,23 +62,25 @@ export default function MyChallengesPage() {
     return 'Low'
   }
 
-  /*
-   * Convert technical backend statuses into
-   * simple citizen-friendly language.
-   */
+  const getPriorityLabel = (priority) => {
+    if (priority === 'High') return t('highPriority')
+    if (priority === 'Medium') return t('mediumPriority')
+    return t('lowPriority')
+  }
+
   const getStatusLabel = (status) => {
     const labels = {
-      OPEN: 'Under review',
-      RESOLVED: 'Resolved',
-      IN_REVIEW: 'Under review',
-      UNIVERSITY_MATCHED: 'University matched',
-      FACULTY_MATCHED: 'Expert matched',
-      IN_PROGRESS: 'Solution in progress',
-      PROTOTYPE: 'Solution being built',
-      TESTING: 'Being tested',
-      PILOT: 'Pilot stage',
-      DEPLOYED: 'Solution deployed',
-      COMPLETED: 'Completed',
+      OPEN: t('underReview'),
+      RESOLVED: t('resolved'),
+      IN_REVIEW: t('underReview'),
+      UNIVERSITY_MATCHED: t('universityMatched'),
+      FACULTY_MATCHED: t('expertMatched'),
+      IN_PROGRESS: t('solutionInProgress'),
+      PROTOTYPE: t('solutionBeingBuilt'),
+      TESTING: t('beingTested'),
+      PILOT: t('pilotStage'),
+      DEPLOYED: t('solutionDeployed'),
+      COMPLETED: t('completed'),
     }
 
     if (labels[status]) {
@@ -89,13 +95,64 @@ export default function MyChallengesPage() {
       )
   }
 
-  /*
-   * Used to decide which step of the citizen journey
-   * should be highlighted.
-   *
-   * This is mainly a UI representation. It does not
-   * change the backend status.
-   */
+  const getCategoryLabel = (category) => {
+    if (!category) {
+      return ''
+    }
+
+    if (language === 'hi') {
+      const hindiCategories = {
+        Environment: 'पर्यावरण',
+        Water: 'जल',
+        Agriculture: 'कृषि',
+        Health: 'स्वास्थ्य',
+        Education: 'शिक्षा',
+        Infrastructure: 'बुनियादी ढाँचा',
+        Sanitation: 'स्वच्छता',
+        Energy: 'ऊर्जा',
+        Transport: 'परिवहन',
+        Waste: 'कचरा प्रबंधन',
+        Environment_and_Climate: 'पर्यावरण और जलवायु',
+      }
+
+      return hindiCategories[category] || category
+    }
+
+    return category
+  }
+
+  const getDisplayTitle = (challenge) => {
+    if (language === 'hi') {
+      return (
+        challenge.title_hi ||
+        challenge.title ||
+        t('problemNumber')
+      )
+    }
+
+    return (
+      challenge.title_en ||
+      challenge.title ||
+      t('problemNumber')
+    )
+  }
+
+  const getDisplayDescription = (challenge) => {
+    if (language === 'hi') {
+      return (
+        challenge.description_hi ||
+        challenge.description ||
+        ''
+      )
+    }
+
+    return (
+      challenge.description_en ||
+      challenge.description ||
+      ''
+    )
+  }
+
   const getProgressStep = (status) => {
     const steps = [
       'OPEN',
@@ -109,7 +166,10 @@ export default function MyChallengesPage() {
 
     const index = steps.indexOf(status)
 
-    if (status === 'RESOLVED') {
+    if (
+      status === 'RESOLVED' ||
+      status === 'COMPLETED'
+    ) {
       return steps.length - 1
     }
 
@@ -149,23 +209,25 @@ export default function MyChallengesPage() {
         .trim()
         .toLowerCase()
 
+      const searchableText = [
+        challenge.title,
+        challenge.title_en,
+        challenge.title_hi,
+        challenge.description,
+        challenge.description_en,
+        challenge.description_hi,
+        challenge.district,
+        challenge.block,
+        challenge.locality,
+        challenge.category,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
       const matchSearch =
         !searchText ||
-        challenge.title
-          ?.toLowerCase()
-          .includes(searchText) ||
-        challenge.description
-          ?.toLowerCase()
-          .includes(searchText) ||
-        challenge.district
-          ?.toLowerCase()
-          .includes(searchText) ||
-        challenge.block
-          ?.toLowerCase()
-          .includes(searchText) ||
-        challenge.locality
-          ?.toLowerCase()
-          .includes(searchText)
+        searchableText.includes(searchText)
 
       return (
         matchStatus &&
@@ -205,26 +267,24 @@ export default function MyChallengesPage() {
         <div>
 
           <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-            Citizen
+            {t('citizen')}
           </p>
 
           <h1 className="mt-2 text-3xl font-bold text-slate-900">
-            My Problems
+            {t('myProblems')}
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            See the problems you reported and
-            follow what happens next.
+            {t('myProblemsDescription')}
           </p>
 
         </div>
-
 
         <Link to="/citizen/challenges/new">
 
           <Button>
             <Plus className="mr-2 h-4 w-4" />
-            Report a Problem
+            {t('reportProblem')}
           </Button>
 
         </Link>
@@ -247,7 +307,7 @@ export default function MyChallengesPage() {
             <div>
 
               <p className="text-sm text-slate-500">
-                Being worked on
+                {t('beingWorkedOn')}
               </p>
 
               <p className="mt-1 text-2xl font-bold text-slate-900">
@@ -272,7 +332,7 @@ export default function MyChallengesPage() {
             <div>
 
               <p className="text-sm text-slate-500">
-                Resolved
+                {t('resolved')}
               </p>
 
               <p className="mt-1 text-2xl font-bold text-slate-900">
@@ -297,7 +357,7 @@ export default function MyChallengesPage() {
             <div>
 
               <p className="text-sm text-slate-500">
-                High priority
+                {t('highPriority')}
               </p>
 
               <p className="mt-1 text-2xl font-bold text-slate-900">
@@ -316,8 +376,8 @@ export default function MyChallengesPage() {
       {/* SEARCH + FILTERS */}
 
       <Card
-        title="Find a problem"
-        subtitle="Search or filter the problems you have reported."
+        title={t('findProblem')}
+        subtitle={t('findProblemDescription')}
       >
 
         <div className="space-y-4">
@@ -332,7 +392,7 @@ export default function MyChallengesPage() {
               onChange={(e) =>
                 setSearch(e.target.value)
               }
-              placeholder="Search by problem, village or district..."
+              placeholder={t('searchProblemPlaceholder')}
               className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
             />
 
@@ -353,15 +413,15 @@ export default function MyChallengesPage() {
             >
 
               <option value="all">
-                All status
+                {t('allStatus')}
               </option>
 
               <option value="OPEN">
-                Under review
+                {t('underReview')}
               </option>
 
               <option value="RESOLVED">
-                Resolved
+                {t('resolved')}
               </option>
 
             </select>
@@ -379,7 +439,7 @@ export default function MyChallengesPage() {
             >
 
               <option value="all">
-                All categories
+                {t('allCategories')}
               </option>
 
               {domains.map((domain) => (
@@ -388,7 +448,7 @@ export default function MyChallengesPage() {
                   key={domain}
                   value={domain}
                 >
-                  {domain}
+                  {getCategoryLabel(domain)}
                 </option>
 
               ))}
@@ -408,7 +468,7 @@ export default function MyChallengesPage() {
             >
 
               <option value="all">
-                All priority
+                {t('allPriority')}
               </option>
 
               {priorities.map((priority) => (
@@ -417,7 +477,7 @@ export default function MyChallengesPage() {
                   key={priority}
                   value={priority}
                 >
-                  {priority}
+                  {getPriorityLabel(priority)}
                 </option>
 
               ))}
@@ -438,7 +498,7 @@ export default function MyChallengesPage() {
         <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
 
           <p className="text-slate-500">
-            Loading your problems...
+            {t('loadingProblems')}
           </p>
 
         </div>
@@ -480,6 +540,12 @@ export default function MyChallengesPage() {
                   challenge.status
                 )
 
+              const displayTitle =
+                getDisplayTitle(challenge)
+
+              const displayDescription =
+                getDisplayDescription(challenge)
+
               return (
 
                 <div
@@ -494,12 +560,14 @@ export default function MyChallengesPage() {
                     <div className="min-w-0">
 
                       <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">
-                        {challenge.category ||
-                          'Problem reported'}
+                        {getCategoryLabel(
+                          challenge.category
+                        ) ||
+                          t('problemReported')}
                       </p>
 
                       <h2 className="mt-2 text-xl font-semibold text-slate-900">
-                        {challenge.title}
+                        {displayTitle}
                       </h2>
 
                     </div>
@@ -507,13 +575,10 @@ export default function MyChallengesPage() {
 
                     <span
                       className={`w-fit shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        challenge.status ===
-                          'RESOLVED' ||
-                        challenge.status ===
-                          'COMPLETED'
+                        challenge.status === 'RESOLVED' ||
+                        challenge.status === 'COMPLETED'
                           ? 'bg-emerald-100 text-emerald-700'
-                          : challenge.status ===
-                              'DEPLOYED'
+                          : challenge.status === 'DEPLOYED'
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-amber-100 text-amber-700'
                       }`}
@@ -528,9 +593,11 @@ export default function MyChallengesPage() {
 
                   {/* DESCRIPTION */}
 
-                  <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-600">
-                    {challenge.description}
-                  </p>
+                  {displayDescription && (
+                    <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-600">
+                      {displayDescription}
+                    </p>
+                  )}
 
 
                   {/* LOCATION */}
@@ -547,7 +614,7 @@ export default function MyChallengesPage() {
                       ]
                         .filter(Boolean)
                         .join(', ') ||
-                        'Location not provided'}
+                        t('locationNotProvided')}
                     </span>
 
                   </div>
@@ -558,7 +625,7 @@ export default function MyChallengesPage() {
                   <div className="mt-6 rounded-2xl bg-slate-50 p-4">
 
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-                      What happens next
+                      {t('whatHappensNext')}
                     </p>
 
 
@@ -683,27 +750,27 @@ export default function MyChallengesPage() {
                     <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px] font-medium text-slate-500 sm:grid-cols-6">
 
                       <span>
-                        Submitted
+                        {t('submitted')}
                       </span>
 
                       <span>
-                        Review
+                        {t('review')}
                       </span>
 
                       <span>
-                        Experts
+                        {t('experts')}
                       </span>
 
                       <span>
-                        Solution
+                        {t('solution')}
                       </span>
 
                       <span>
-                        Testing
+                        {t('testing')}
                       </span>
 
                       <span>
-                        Deployment
+                        {t('deployment')}
                       </span>
 
                     </div>
@@ -721,23 +788,29 @@ export default function MyChallengesPage() {
                         className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
                           priority === 'High'
                             ? 'bg-red-50 text-red-700'
-                            : priority ===
-                                'Medium'
+                            : priority === 'Medium'
                               ? 'bg-amber-50 text-amber-700'
                               : 'bg-slate-100 text-slate-600'
                         }`}
                       >
-                        {priority} priority
+                        {getPriorityLabel(priority)}
                       </span>
 
 
                       {challenge.created_at && (
 
                         <span className="text-xs text-slate-500">
-                          Reported{' '}
+
+                          {t('reported')}{' '}
+
                           {new Date(
                             challenge.created_at
-                          ).toLocaleDateString()}
+                          ).toLocaleDateString(
+                            language === 'hi'
+                              ? 'hi-IN'
+                              : 'en-IN'
+                          )}
+
                         </span>
 
                       )}
@@ -749,8 +822,11 @@ export default function MyChallengesPage() {
                       to={`/challenges/${challenge.id}`}
                       className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700"
                     >
-                      View progress
+
+                      {t('viewProgress')}
+
                       <ArrowRight className="h-4 w-4" />
+
                     </Link>
 
                   </div>
@@ -780,12 +856,11 @@ export default function MyChallengesPage() {
             </div>
 
             <h2 className="mt-4 text-lg font-semibold text-slate-900">
-              No problems found
+              {t('noProblemsFound')}
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              You have not reported a problem
-              matching these filters yet.
+              {t('noProblemsMatching')}
             </p>
 
             <Link
@@ -795,7 +870,7 @@ export default function MyChallengesPage() {
 
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Report a Problem
+                {t('reportProblem')}
               </Button>
 
             </Link>

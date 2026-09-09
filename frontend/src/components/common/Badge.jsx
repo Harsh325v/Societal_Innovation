@@ -1,26 +1,34 @@
+import { useTranslation } from '../../i18n/useTranslation'
+
 const statusConfig = {
-  OPEN: { label: 'Open', tone: 'info' },
-  UNDER_REVIEW: { label: 'Under Review', tone: 'warning' },
-  RESOLVED: { label: 'Resolved', tone: 'success' },
+  OPEN: { key: 'open', tone: 'info' },
+  UNDER_REVIEW: { key: 'underReview', tone: 'warning' },
+  RESOLVED: { key: 'resolved', tone: 'success' },
 
-  ACTIVE: { label: 'Active', tone: 'primary' },
-  COMPLETED: { label: 'Completed', tone: 'success' },
-  IN_PROGRESS: { label: 'In Progress', tone: 'info' },
-  PENDING: { label: 'Pending', tone: 'warning' },
+  ACTIVE: { key: 'active', tone: 'primary' },
+  COMPLETED: { key: 'completed', tone: 'success' },
+  IN_PROGRESS: { key: 'statusInProgress', tone: 'info' },
+  PENDING: { key: 'statusPending', tone: 'warning' },
 
-  SUBMITTED: { label: 'Submitted', tone: 'info' },
-  APPROVED: { label: 'Approved', tone: 'success' },
-  ACCEPTED: { label: 'Accepted', tone: 'success' },
-  REJECTED: { label: 'Rejected', tone: 'danger' },
+  SUBMITTED: { key: 'statusSubmitted', tone: 'info' },
+  APPROVED: { key: 'approved', tone: 'success' },
+  ACCEPTED: { key: 'statusAccepted', tone: 'success' },
+  REJECTED: { key: 'statusRejected', tone: 'danger' },
 
-  DEPLOYED: { label: 'Deployed', tone: 'success' },
+  DEPLOYED: { key: 'solutionDeployed', tone: 'success' },
 }
 
 export default function Badge({ status }) {
+  const { t } = useTranslation()
+
   const config = statusConfig[status] || {
-    label: status,
+    key: null,
     tone: 'neutral',
   }
+
+  const label = config.key
+    ? t(config.key)
+    : status
 
   const tones = {
     neutral: 'bg-slate-100 text-slate-700',
@@ -39,7 +47,7 @@ export default function Badge({ status }) {
         tones[config.tone]
       }`}
     >
-      {config.label}
+      {label}
     </span>
   )
 }

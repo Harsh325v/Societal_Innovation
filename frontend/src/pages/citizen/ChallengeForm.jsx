@@ -14,6 +14,7 @@ import Input from '../../components/common/Input'
 import Select from '../../components/common/Select'
 import MapPicker from '../../components/common/MapPicker'
 import { challengeService } from '../../services/challengeService'
+import { useTranslation } from '../../i18n/useTranslation'
 
 // Jharkhand has 24 districts
 const districts = [
@@ -91,17 +92,14 @@ const initialForm = {
 
 export default function ChallengeForm() {
   const navigate = useNavigate()
+  const { t, language } = useTranslation()
 
   const [form, setForm] = useState(initialForm)
 
   const [submitted, setSubmitted] = useState(false)
-
   const [loading, setLoading] = useState(false)
-
   const [error, setError] = useState('')
-
   const [listening, setListening] = useState(false)
-
   const [showLocation, setShowLocation] = useState(false)
 
   const updateForm = (field, value) => {
@@ -114,8 +112,8 @@ export default function ChallengeForm() {
   /*
    * Voice input.
    *
-   * Uses the browser's built-in speech recognition
-   * when available.
+   * Uses the browser's built-in speech recognition.
+   * The language follows the selected UI language.
    */
   const handleVoiceInput = () => {
     const SpeechRecognition =
@@ -123,9 +121,7 @@ export default function ChallengeForm() {
       window.webkitSpeechRecognition
 
     if (!SpeechRecognition) {
-      setError(
-        'Voice input is not supported in this browser. You can type your problem instead.'
-      )
+      setError(t('voiceNotSupported'))
       return
     }
 
@@ -135,7 +131,11 @@ export default function ChallengeForm() {
 
     const recognition = new SpeechRecognition()
 
-    recognition.lang = 'en-IN'
+    recognition.lang =
+      language === 'hi'
+        ? 'hi-IN'
+        : 'en-IN'
+
     recognition.interimResults = false
     recognition.continuous = false
 
@@ -160,9 +160,7 @@ export default function ChallengeForm() {
     }
 
     recognition.onerror = () => {
-      setError(
-        'Could not understand the voice input. Please try again or type your problem.'
-      )
+      setError(t('voiceInputError'))
     }
 
     recognition.onend = () => {
@@ -177,18 +175,13 @@ export default function ChallengeForm() {
 
     setError('')
 
-    /*
-     * Basic validation before sending data.
-     */
     if (!form.description.trim()) {
-      setError(
-        'Please tell us about the problem you are facing.'
-      )
+      setError(t('problemRequired'))
       return
     }
 
     if (!form.district) {
-      setError('Please select your district.')
+      setError(t('districtRequired'))
       return
     }
 
@@ -223,14 +216,13 @@ export default function ChallengeForm() {
        * or urgency.
        *
        * Sahyog's backend/AI layer handles the analysis.
-       *
-       * Safe default values are sent because the current
-       * backend expects these fields.
        */
       const payload = {
         title:
           form.title.trim() ||
-          'Citizen reported problem',
+          (language === 'hi'
+            ? 'नागरिक द्वारा दर्ज की गई समस्या'
+            : 'Citizen reported problem'),
 
         description: form.description.trim(),
 
@@ -260,10 +252,6 @@ export default function ChallengeForm() {
 
       setSubmitted(true)
 
-      /*
-       * Give the success message a moment to appear
-       * before opening the challenge details page.
-       */
       setTimeout(() => {
         navigate(
           `/challenges/${response.data.id}`
@@ -274,7 +262,7 @@ export default function ChallengeForm() {
 
       setError(
         err.response?.data?.detail ||
-          'Something went wrong while submitting the problem.'
+          t('submitProblemError')
       )
     } finally {
       setLoading(false)
@@ -305,24 +293,19 @@ export default function ChallengeForm() {
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-8 text-center shadow-sm">
 
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-
             <CheckCircle2 className="h-8 w-8 text-emerald-600" />
-
           </div>
 
           <h2 className="mt-5 text-2xl font-bold text-emerald-900">
-            Problem reported successfully
+            {t('problemReportedSuccessfully')}
           </h2>
 
           <p className="mt-3 text-sm leading-6 text-emerald-700">
-            Thank you for reporting this issue.
-            Sahyog will analyze your problem and
-            look for suitable university experts
-            who can help.
+            {t('problemReportedDescription')}
           </p>
 
           <p className="mt-4 text-xs text-emerald-600">
-            Taking you to your problem...
+            {t('takingToProblem')}
           </p>
 
         </div>
@@ -339,17 +322,15 @@ export default function ChallengeForm() {
       <div>
 
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-          Citizen
+          {language === 'hi' ? 'नागरिक' : 'Citizen'}
         </p>
 
         <h1 className="mt-2 text-3xl font-bold text-slate-900">
-          Report a Problem
+          {t('reportProblem')}
         </h1>
 
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          Tell us about a problem in your community.
-          You do not need to know the category or
-          technical details. Sahyog will help analyze it.
+          {t('reportFormDescription')}
         </p>
 
       </div>
@@ -358,8 +339,8 @@ export default function ChallengeForm() {
       {/* MAIN PROBLEM */}
 
       <Card
-        title="What problem are you facing?"
-        subtitle="Explain the problem in your own words."
+        title={t('whatProblemFacing')}
+        subtitle={t('explainProblemOwnWords')}
       >
 
         <div className="space-y-5">
@@ -369,7 +350,7 @@ export default function ChallengeForm() {
           <div>
 
             <label className="block text-sm font-medium text-slate-700">
-              Describe your problem
+              {t('describeProblem')}
             </label>
 
             <textarea
@@ -381,13 +362,12 @@ export default function ChallengeForm() {
                   e.target.value
                 )
               }
-              placeholder="For example: There is no proper drinking water supply in our village..."
+              placeholder={t('problemPlaceholder')}
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm leading-6 text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
             />
 
             <p className="mt-2 text-xs text-slate-500">
-              You can write in simple words. You do
-              not need to explain it technically.
+              {t('simpleWordsHint')}
             </p>
 
           </div>
@@ -408,12 +388,12 @@ export default function ChallengeForm() {
             {listening ? (
               <>
                 <MicOff className="h-5 w-5" />
-                Listening... Speak clearly
+                {t('listeningSpeakClearly')}
               </>
             ) : (
               <>
                 <Mic className="h-5 w-5" />
-                Speak your problem instead
+                {t('speakProblemInstead')}
               </>
             )}
 
@@ -423,7 +403,7 @@ export default function ChallengeForm() {
           {/* OPTIONAL SHORT TITLE */}
 
           <Input
-            label="Problem title (optional)"
+            label={t('problemTitleOptional')}
             value={form.title}
             onChange={(e) =>
               updateForm(
@@ -431,12 +411,11 @@ export default function ChallengeForm() {
                 e.target.value
               )
             }
-            placeholder="Example: Drinking water problem"
+            placeholder={t('problemTitlePlaceholder')}
           />
 
           <p className="-mt-3 text-xs text-slate-500">
-            If you leave this empty, Sahyog will use
-            a simple title automatically.
+            {t('emptyTitleHint')}
           </p>
 
         </div>
@@ -447,14 +426,14 @@ export default function ChallengeForm() {
       {/* LOCATION */}
 
       <Card
-        title="Where is the problem?"
-        subtitle="This helps us connect your problem with nearby universities and experts."
+        title={t('whereProblem')}
+        subtitle={t('locationHelpsMatching')}
       >
 
         <div className="grid gap-5 md:grid-cols-2">
 
           <Select
-            label="District"
+            label={t('district')}
             value={form.district}
             options={districts.map(
               (district) => ({
@@ -468,7 +447,7 @@ export default function ChallengeForm() {
           />
 
           <Input
-            label="Block"
+            label={t('block')}
             value={form.block}
             onChange={(e) =>
               updateForm(
@@ -476,11 +455,11 @@ export default function ChallengeForm() {
                 e.target.value
               )
             }
-            placeholder="Example: Angara"
+            placeholder={t('blockPlaceholder')}
           />
 
           <Input
-            label="Village / locality"
+            label={t('villageLocality')}
             value={form.locality}
             onChange={(e) =>
               updateForm(
@@ -488,7 +467,7 @@ export default function ChallengeForm() {
                 e.target.value
               )
             }
-            placeholder="Example: Kusmi Pahari"
+            placeholder={t('localityPlaceholder')}
           />
 
         </div>
@@ -511,8 +490,8 @@ export default function ChallengeForm() {
             <MapPin className="h-4 w-4" />
 
             {showLocation
-              ? 'Hide map'
-              : 'Add exact location on map'}
+              ? t('hideMap')
+              : t('addExactLocation')}
 
           </button>
 
@@ -536,9 +515,7 @@ export default function ChallengeForm() {
               />
 
               <p className="text-xs text-slate-500">
-                You can move the marker to the
-                approximate location of the problem.
-                You do not need to enter coordinates.
+                {t('mapLocationHint')}
               </p>
 
             </div>
@@ -553,14 +530,14 @@ export default function ChallengeForm() {
       {/* IMPACT */}
 
       <Card
-        title="How many people are affected?"
-        subtitle="An approximate number is completely fine."
+        title={t('howManyAffected')}
+        subtitle={t('approximateNumberFine')}
       >
 
         <div className="max-w-md">
 
           <Input
-            label="People affected"
+            label={t('peopleAffected')}
             type="number"
             min="0"
             value={form.affectedPeople}
@@ -570,7 +547,7 @@ export default function ChallengeForm() {
                 e.target.value
               )
             }
-            placeholder="Example: 500"
+            placeholder={t('peopleAffectedPlaceholder')}
           />
 
         </div>
@@ -579,13 +556,11 @@ export default function ChallengeForm() {
         <div className="mt-4 rounded-2xl bg-slate-50 p-4">
 
           <p className="text-sm font-medium text-slate-700">
-            Why do we ask this?
+            {t('whyAskThis')}
           </p>
 
           <p className="mt-1 text-sm leading-6 text-slate-500">
-            This helps Sahyog understand how many
-            people may be affected and how urgently
-            the problem may need attention.
+            {t('whyAskDescription')}
           </p>
 
         </div>
@@ -595,19 +570,18 @@ export default function ChallengeForm() {
 
       {/* AI EXPLANATION */}
 
-      <Card title="What happens after you submit?">
+      <Card title={t('whatHappensAfterSubmit')}>
 
         <div className="grid gap-4 md:grid-cols-4">
 
           <div className="rounded-2xl bg-slate-50 p-4">
 
             <div className="text-sm font-semibold text-slate-900">
-              1. We understand
+              1. {t('weUnderstand')}
             </div>
 
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              Sahyog analyzes your problem and
-              identifies its category.
+              {t('weUnderstandDescription')}
             </p>
 
           </div>
@@ -616,12 +590,11 @@ export default function ChallengeForm() {
           <div className="rounded-2xl bg-slate-50 p-4">
 
             <div className="text-sm font-semibold text-slate-900">
-              2. We find experts
+              2. {t('weFindExperts')}
             </div>
 
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              Suitable universities and faculty
-              are matched to your problem.
+              {t('weFindExpertsDescription')}
             </p>
 
           </div>
@@ -630,12 +603,11 @@ export default function ChallengeForm() {
           <div className="rounded-2xl bg-slate-50 p-4">
 
             <div className="text-sm font-semibold text-slate-900">
-              3. A solution is built
+              3. {t('solutionBuilt')}
             </div>
 
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              Students and faculty work on the
-              problem through a project.
+              {t('solutionBuiltDescription')}
             </p>
 
           </div>
@@ -644,12 +616,11 @@ export default function ChallengeForm() {
           <div className="rounded-2xl bg-slate-50 p-4">
 
             <div className="text-sm font-semibold text-slate-900">
-              4. Impact is tracked
+              4. {t('impactTracked')}
             </div>
 
             <p className="mt-2 text-xs leading-5 text-slate-500">
-              The solution can eventually reach
-              the community.
+              {t('impactTrackedDescription')}
             </p>
 
           </div>
@@ -679,8 +650,7 @@ export default function ChallengeForm() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
         <p className="text-xs leading-5 text-slate-500">
-          By submitting, your problem will be
-          reviewed and analyzed by Sahyog.
+          {t('submitReviewNotice')}
         </p>
 
 
@@ -691,10 +661,10 @@ export default function ChallengeForm() {
         >
 
           {loading ? (
-            'Submitting...'
+            t('submitting')
           ) : (
             <>
-              Submit Problem
+              {t('submitProblem')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </>
           )}

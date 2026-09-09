@@ -8,14 +8,20 @@ class ChallengeCreate(BaseModel):
     title: str
     description: str
 
-    # location of the problem
+    # language used by the citizen
+    language: str = Field(
+        default="en",
+        pattern="^(en|hi)$",
+    )
+
+    # location
     district: str | None = None
     block: str | None = None
     locality: str | None = None
     latitude: float | None = None
     longitude: float | None = None
 
-    # citizen gives these ratings from 1 to 5
+    # citizen impact ratings
     severity: int = Field(ge=1, le=5)
     urgency: int = Field(ge=1, le=5)
     people_affected: int = Field(ge=1, le=5)
@@ -25,21 +31,33 @@ class ChallengeCreate(BaseModel):
 class ChallengeResponse(BaseModel):
     id: int
     user_id: int
+
+    # original content
     title: str
     description: str
+    source_language: str
 
-    # location information
+    # multilingual versions
+    title_en: str | None
+    title_hi: str | None
+    description_en: str | None
+    description_hi: str | None
+
+    # location
     district: str | None
     block: str | None
     locality: str | None
     latitude: float | None
     longitude: float | None
 
+    # AI information
     category: str | None
     priority_score: float | None
     status: str
+
     created_at: datetime
     updated_at: datetime
 
-    # lets pydantic read data directly from sqlalchemy
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True
+    )

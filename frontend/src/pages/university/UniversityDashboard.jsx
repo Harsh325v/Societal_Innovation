@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react'
 import Card from '../../components/common/Card'
 import StatCard from '../../components/common/StatCard'
 import api from '../../services/api'
+import { useTranslation } from '../../i18n/useTranslation'
 
 const COLORS = [
   '#0f172a',
@@ -30,6 +31,8 @@ const COLORS = [
 ]
 
 export default function UniversityDashboard() {
+  const { t, language } = useTranslation()
+
   const [challenges, setChallenges] = useState([])
   const [projects, setProjects] = useState([])
   const [proposals, setProposals] = useState([])
@@ -42,7 +45,9 @@ export default function UniversityDashboard() {
   useEffect(() => {
     const loadDashboard = async () => {
       try {
-        // get real challenges and projects from postgres
+        setLoading(true)
+        setError('')
+
         const [challengeResponse, projectResponse] =
           await Promise.all([
             api.get('/challenges/'),
@@ -55,7 +60,6 @@ export default function UniversityDashboard() {
         setChallenges(challengeData)
         setProjects(projectData)
 
-        // get proposals for each real challenge
         const proposalResults = await Promise.all(
           challengeData.map(async (challenge) => {
             try {
@@ -75,10 +79,8 @@ export default function UniversityDashboard() {
           })
         )
 
-        const allProposals = proposalResults.flat()
-        setProposals(allProposals)
+        setProposals(proposalResults.flat())
 
-        // get members and industry collaborations for each real project
         const projectResults = await Promise.all(
           projectData.map(async (project) => {
             let projectMembers = []
@@ -133,7 +135,7 @@ export default function UniversityDashboard() {
 
         setError(
           err.response?.data?.detail ||
-            'Could not load university dashboard.'
+            t('couldNotLoadUniversityDashboard')
         )
       } finally {
         setLoading(false)
@@ -141,9 +143,8 @@ export default function UniversityDashboard() {
     }
 
     loadDashboard()
-  }, [])
+  }, [language])
 
-  // count real challenge states
   const assignedChallenges = challenges.filter(
     (challenge) => challenge.status !== 'RESOLVED'
   ).length
@@ -160,7 +161,6 @@ export default function UniversityDashboard() {
     (project) => project.status === 'COMPLETED'
   ).length
 
-  // count unique project members
   const studentTeams = new Set(
     members
       .filter((member) => member.role === 'STUDENT')
@@ -172,7 +172,31 @@ export default function UniversityDashboard() {
       collaboration.status === 'ACCEPTED'
   ).length
 
-  // build real domain data from challenge categories
+  const getCategoryLabel = (category) => {
+    if (!category) return t('other')
+
+    if (language === 'hi') {
+      const hindiCategories = {
+        Environment: 'पर्यावरण',
+        Water: 'जल',
+        Agriculture: 'कृषि',
+        Health: 'स्वास्थ्य',
+        Education: 'शिक्षा',
+        Infrastructure: 'बुनियादी ढाँचा',
+        Sanitation: 'स्वच्छता',
+        Energy: 'ऊर्जा',
+        Transport: 'परिवहन',
+        Waste: 'कचरा प्रबंधन',
+        Environment_and_Climate: 'पर्यावरण और जलवायु',
+        Other: 'अन्य',
+      }
+
+      return hindiCategories[category] || category
+    }
+
+    return category
+  }
+
   const domainCounts = {}
 
   challenges.forEach((challenge) => {
@@ -184,26 +208,41 @@ export default function UniversityDashboard() {
 
   const pieData = Object.entries(domainCounts).map(
     ([name, value]) => ({
-      name,
+      name: getCategoryLabel(name),
       value,
     })
   )
 
-  // build project activity from actual project creation dates
-  const monthNames = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ]
+  const monthNames =
+    language === 'hi'
+      ? [
+          'जन',
+          'फ़र',
+          'मार्च',
+          'अप्रैल',
+          'मई',
+          'जून',
+          'जुल',
+          'अग',
+          'सित',
+          'अक्टू',
+          'नव',
+          'दिस',
+        ]
+      : [
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
+        ]
 
   const currentYear = new Date().getFullYear()
 
@@ -225,37 +264,37 @@ export default function UniversityDashboard() {
 
   const dashboardCards = [
     {
-      label: 'Assigned challenges',
+      label: t('assignedChallenges'),
       value: assignedChallenges,
       icon: Gauge,
       accent: 'slate',
     },
     {
-      label: 'Pending reviews',
+      label: t('pendingReviews'),
       value: pendingReviews,
       icon: FolderKanban,
       accent: 'amber',
     },
     {
-      label: 'Active projects',
+      label: t('activeProjects'),
       value: activeProjects,
       icon: FolderKanban,
       accent: 'cyan',
     },
     {
-      label: 'Completed',
+      label: t('completed'),
       value: completedProjects,
       icon: Gauge,
       accent: 'emerald',
     },
     {
-      label: 'Student teams',
+      label: t('studentTeams'),
       value: studentTeams,
       icon: GraduationCap,
       accent: 'violet',
     },
     {
-      label: 'Industry collaborations',
+      label: t('industryCollaborations'),
       value: activeCollaborations,
       icon: BarChart3,
       accent: 'slate',
@@ -266,7 +305,7 @@ export default function UniversityDashboard() {
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
         <p className="text-slate-500">
-          Loading university dashboard...
+          {t('loadingUniversityDashboard')}
         </p>
       </div>
     )
@@ -285,18 +324,21 @@ export default function UniversityDashboard() {
   return (
     <div className="space-y-6">
 
-      {/* page heading */}
+      {/* PAGE HEADING */}
+
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-          University dashboard
+          {t('universityDashboard')}
         </p>
 
         <h1 className="mt-2 text-3xl font-bold text-slate-900">
-          Partner impact overview
+          {t('partnerImpactOverview')}
         </h1>
       </div>
 
-      {/* real statistics */}
+
+      {/* STATISTICS */}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
 
         {dashboardCards.map((card) => (
@@ -311,23 +353,32 @@ export default function UniversityDashboard() {
 
       </div>
 
+
       <div className="grid gap-6 xl:grid-cols-2">
 
-        {/* real challenge categories */}
-        <Card title="Challenges by domain">
+        {/* CHALLENGES BY DOMAIN */}
+
+        <Card title={t('challengesByDomain')}>
 
           {pieData.length === 0 ? (
+
             <div className="flex h-72 items-center justify-center">
+
               <p className="text-sm text-slate-500">
-                No challenge data available yet.
+                {t('noChallengeData')}
               </p>
+
             </div>
+
           ) : (
+
             <div className="h-72">
+
               <ResponsiveContainer
                 width="100%"
                 height="100%"
               >
+
                 <PieChart>
 
                   <Pie
@@ -338,6 +389,7 @@ export default function UniversityDashboard() {
                     innerRadius={45}
                     paddingAngle={3}
                   >
+
                     {pieData.map((entry, index) => (
                       <Cell
                         key={entry.name}
@@ -348,33 +400,44 @@ export default function UniversityDashboard() {
                         }
                       />
                     ))}
+
                   </Pie>
 
                   <Tooltip />
 
                 </PieChart>
+
               </ResponsiveContainer>
+
             </div>
           )}
 
         </Card>
 
-        {/* real project activity */}
-        <Card title="Monthly project activity">
+
+        {/* MONTHLY PROJECT ACTIVITY */}
+
+        <Card title={t('monthlyProjectActivity')}>
 
           {projects.length === 0 ? (
+
             <div className="flex h-72 items-center justify-center">
+
               <p className="text-sm text-slate-500">
-                No projects created yet.
+                {t('noProjectsCreated')}
               </p>
+
             </div>
+
           ) : (
+
             <div className="h-72">
 
               <ResponsiveContainer
                 width="100%"
                 height="100%"
               >
+
                 <BarChart data={monthlyCounts}>
 
                   <XAxis dataKey="name" />

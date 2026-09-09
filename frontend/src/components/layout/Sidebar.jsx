@@ -9,9 +9,11 @@ import {
   LogOut,
   Sparkles,
   Microscope,
+  Languages,
 } from 'lucide-react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useLanguage } from '../../context/LanguageContext'
 
 const menu = {
   CITIZEN: [
@@ -137,6 +139,8 @@ const menu = {
 
 export default function Sidebar({ visible, onClose }) {
   const { user, signOut } = useAuth()
+  const { language, setLanguage } = useLanguage()
+
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -249,11 +253,45 @@ export default function Sidebar({ visible, onClose }) {
         )}
       </nav>
 
+      {/* LANGUAGE SELECTOR */}
+      <div className="mt-8 border-t border-slate-200 pt-5">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <Languages className="h-4 w-4" />
+          Language
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setLanguage('en')}
+            className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+              language === 'en'
+                ? 'bg-slate-900 text-white'
+                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            English
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setLanguage('hi')}
+            className={`rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
+              language === 'hi'
+                ? 'bg-slate-900 text-white'
+                : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            हिंदी
+          </button>
+        </div>
+      </div>
+
       {user && (
         <button
           type="button"
           onClick={signOut}
-          className="mt-8 flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+          className="mt-5 flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
         >
           <LogOut className="h-4 w-4" />
           Sign out

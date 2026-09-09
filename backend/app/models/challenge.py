@@ -18,7 +18,7 @@ class Challenge(Base):
         nullable=False,
     )
 
-    # basic challenge information
+    # original challenge content
     title: Mapped[str] = mapped_column(
         String(200),
         nullable=False,
@@ -29,7 +29,35 @@ class Challenge(Base):
         nullable=False,
     )
 
-    # location information for Jharkhand-based challenges
+    # language used by the citizen when submitting
+    source_language: Mapped[str] = mapped_column(
+        String(10),
+        default="en",
+        nullable=False,
+    )
+
+    # translated versions
+    title_en: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+    )
+
+    title_hi: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+    )
+
+    description_en: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    description_hi: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    # location information
     district: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
@@ -45,7 +73,7 @@ class Challenge(Base):
         nullable=True,
     )
 
-    # coordinates are optional for now
+    # coordinates are optional
     latitude: Mapped[float | None] = mapped_column(
         Float,
         nullable=True,
@@ -56,7 +84,7 @@ class Challenge(Base):
         nullable=True,
     )
 
-    # we'll fill these using our AI later
+    # AI-generated category
     category: Mapped[str | None] = mapped_column(
         String(100),
         nullable=True,
@@ -83,13 +111,12 @@ class Challenge(Base):
         onupdate=datetime.utcnow,
     )
 
-    # lets us do challenge.user to get the person who submitted it
+    # relationships
     user = relationship(
         "User",
         back_populates="challenges",
     )
 
-    # lets us do challenge.ai_analysis
     ai_analysis = relationship(
         "ChallengeAIAnalysis",
         back_populates="challenge",

@@ -20,7 +20,7 @@ from app.api.project_impact import router as project_impact_router
 from app.api.project_deliverables import router as project_deliverables_router
 from app.api.chat import router as chat_router
 from app.api.scientist_reviews import router as scientist_reviews_router
-
+from app.api.sms_notifications import router as sms_notifications_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -64,6 +64,8 @@ app.include_router(project_impact_router)
 app.include_router(project_deliverables_router)
 app.include_router(chat_router)
 app.include_router(scientist_reviews_router)
+app.include_router(sms_notifications_router)
+
 
 
 @app.get("/")

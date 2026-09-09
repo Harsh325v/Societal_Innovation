@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies import get_current_user
 from app.core.database import SessionLocal
 from app.models.project import Project
+from app.models.sms_notification import SMSNotification
 from app.models.user import User, UserRole
 from app.schemas.project import ProjectResponse
 
@@ -318,6 +319,53 @@ def update_project_status(
     # Automatically record completion date.
     if status == "COMPLETED":
         project.end_date = datetime.utcnow()
+
+    # -----------------------------------------------------
+    # DEPLOYMENT SMS NOTIFICATION
+    # -----------------------------------------------------
+
+    if status == "DEPLOYED":
+        challenge = project.challenge
+
+        if challenge is not None:
+            citizen = (
+                db.query(User)
+                .filter(
+                    User.id == challenge.user_id
+                )
+                .first()
+            )
+
+            if citizen is not None and citizen.phone:
+                if (
+                    getattr(
+                        challenge,
+                        "source_language",
+                        "en",
+                    )
+                    == "hi"
+                ):
+                    sms_message = (
+                        "आपकी दर्ज की गई समस्या के लिए "
+                        "एक समाधान तैनात किया गया है। "
+                        f"समस्या ID: {challenge.id}"
+                    )
+                else:
+                    sms_message = (
+                        "A solution has been deployed "
+                        "for your reported problem. "
+                        f"Problem ID: {challenge.id}"
+                    )
+
+                sms_notification = SMSNotification(
+                    user_id=citizen.id,
+                    phone=citizen.phone,
+                    message=sms_message,
+                    notification_type="SOLUTION_DEPLOYED",
+                    sent=False,
+                )
+
+                db.add(sms_notification)
 
     db.commit()
     db.refresh(project)

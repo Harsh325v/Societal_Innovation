@@ -4,16 +4,51 @@ import Button from '../../components/common/Button'
 import Card from '../../components/common/Card'
 import Badge from '../../components/common/Badge'
 import { projectService } from '../../services/projectService'
+import { useTranslation } from '../../i18n/useTranslation'
 
 export default function UniversityProjectsPage() {
+  const { t, language } = useTranslation()
+
   const [projects, setProjects] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const statusLabels = {
+    PROPOSAL: language === 'hi' ? 'प्रस्ताव' : 'Proposal',
+    APPROVED: language === 'hi' ? 'स्वीकृत' : 'Approved',
+    RESEARCH: language === 'hi' ? 'अनुसंधान' : 'Research',
+    PROTOTYPE: language === 'hi' ? 'प्रोटोटाइप' : 'Prototype',
+    TESTING: language === 'hi' ? 'परीक्षण' : 'Testing',
+    PILOT: language === 'hi' ? 'पायलट' : 'Pilot',
+    DEPLOYED: language === 'hi' ? 'तैनात' : 'Deployed',
+    COMPLETED: language === 'hi' ? 'पूर्ण' : 'Completed',
+  }
+
+  const formatStatus = (status) => {
+    return (
+      statusLabels[status] ||
+      status?.replaceAll('_', ' ') ||
+      status
+    )
+  }
+
+  const formatDate = (date) => {
+    if (!date) return ''
+
+    return new Date(date).toLocaleDateString(
+      language === 'hi' ? 'hi-IN' : 'en-IN',
+      {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      }
+    )
+  }
+
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        // get the real projects from postgres
+        // Get the real projects from PostgreSQL
         const response = await projectService.getProjects()
         setProjects(response.data)
       } catch (err) {
@@ -21,6 +56,7 @@ export default function UniversityProjectsPage() {
 
         setError(
           err.response?.data?.detail ||
+            t('couldNotLoadProjects') ||
             'Could not load projects.'
         )
       } finally {
@@ -29,13 +65,13 @@ export default function UniversityProjectsPage() {
     }
 
     loadProjects()
-  }, [])
+  }, [t])
 
   if (loading) {
     return (
       <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
         <p className="text-slate-600">
-          Loading projects...
+          {t('loadingProjects') || 'Loading projects...'}
         </p>
       </div>
     )
@@ -55,18 +91,19 @@ export default function UniversityProjectsPage() {
     <div className="space-y-6">
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-          Project portfolio
+          {t('projectPortfolio') || 'Project portfolio'}
         </p>
 
         <h1 className="mt-2 text-3xl font-bold text-slate-900">
-          Managed initiatives
+          {t('managedInitiatives') || 'Managed initiatives'}
         </h1>
       </div>
 
       {projects.length === 0 ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
           <p className="text-slate-500">
-            No projects have been created yet.
+            {t('noProjectsCreated') ||
+              'No projects have been created yet.'}
           </p>
 
           <Link
@@ -74,7 +111,7 @@ export default function UniversityProjectsPage() {
             className="mt-4 inline-block"
           >
             <Button variant="secondary">
-              Browse challenges
+              {t('browseChallenges') || 'Browse challenges'}
             </Button>
           </Link>
         </div>
@@ -85,7 +122,7 @@ export default function UniversityProjectsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.15em] text-slate-500">
-                    Project #{project.id}
+                    {t('project') || 'Project'} #{project.id}
                   </p>
 
                   <h2 className="mt-2 text-xl font-semibold text-slate-900">
@@ -102,27 +139,30 @@ export default function UniversityProjectsPage() {
 
               <div className="mt-4 grid gap-2 text-sm text-slate-500">
                 <div>
-                  Challenge: #{project.challenge_id}
+                  {t('challenge') || 'Challenge'}: #{project.challenge_id}
                 </div>
 
                 <div>
-                  HEI: #{project.hei_id}
+                  {t('hei') || 'HEI'}: #{project.hei_id}
                 </div>
 
                 {project.start_date && (
                   <div>
-                    Started:{' '}
-                    {new Date(
-                      project.start_date
-                    ).toLocaleDateString()}
+                    {t('started') || 'Started'}:{' '}
+                    {formatDate(project.start_date)}
                   </div>
                 )}
+
+                <div>
+                  {t('status') || 'Status'}:{' '}
+                  {formatStatus(project.status)}
+                </div>
               </div>
 
               <div className="mt-5 flex justify-end">
                 <Link to={`/projects/${project.id}`}>
                   <Button variant="secondary">
-                    View project
+                    {t('viewProject') || 'View project'}
                   </Button>
                 </Link>
               </div>
