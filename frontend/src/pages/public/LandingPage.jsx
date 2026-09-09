@@ -2,7 +2,9 @@ import {
   ArrowRight,
   Building2,
   CheckCircle2,
+  Heart,
   MapPin,
+  QrCode,
   ShieldCheck,
   Sparkles,
   Users,
@@ -41,7 +43,7 @@ const steps = [
 export default function LandingPage() {
   return (
     <div className="bg-slate-50">
-      {/* hero section */}
+      {/* HERO */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
         <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
@@ -74,7 +76,6 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            {/* don't show fake platform numbers here */}
             <div className="mt-10 grid max-w-md grid-cols-2 gap-4">
               <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="text-lg font-bold text-slate-900">
@@ -114,7 +115,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* platform workflow preview */}
+          {/* PLATFORM WORKFLOW */}
           <div className="relative overflow-hidden rounded-[28px] border border-slate-200 bg-white p-5 shadow-lg">
             <div className="rounded-2xl bg-slate-900 p-5 text-white">
               <div className="text-xs uppercase tracking-[0.2em] text-slate-300">
@@ -188,7 +189,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* workflow explanation */}
+      {/* WORKFLOW EXPLANATION */}
       <section className="border-y border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -224,7 +225,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* supported domains */}
+      {/* SUPPORTED DOMAINS */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
@@ -248,7 +249,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* role explanation */}
+      {/* ROLE EXPLANATION */}
       <section className="border-y border-slate-200 bg-slate-900 text-white">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-10 md:grid-cols-3">
@@ -295,7 +296,51 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* call to action */}
+      {/* SUPPORT SAHYOG */}
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-lg">
+          <div className="grid items-center gap-10 p-8 md:grid-cols-[1fr_280px] md:p-10">
+            <div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900">
+                <Heart className="h-6 w-6 text-white" />
+              </div>
+
+              <p className="mt-6 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Support community innovation
+              </p>
+
+              <h2 className="mt-3 text-3xl font-bold text-slate-900">
+                Help turn ideas into real solutions.
+              </h2>
+
+              <p className="mt-4 max-w-xl text-sm leading-7 text-slate-600">
+                Contributions can help support research, prototyping,
+                community pilots, and other activities needed to take
+                grassroots solutions from an idea to the field.
+              </p>
+
+              <div className="mt-5 flex items-center gap-2 text-sm font-medium text-slate-600">
+                <QrCode className="h-4 w-4" />
+                Scan the QR code to contribute
+              </div>
+            </div>
+
+            <div className="mx-auto w-full max-w-[240px] rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <img
+                src="/qr.jpeg"
+                alt="QR code to support Sahyog"
+                className="h-auto w-full rounded-xl"
+              />
+
+              <p className="mt-3 text-center text-xs font-medium text-slate-500">
+                Scan to donate
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CALL TO ACTION */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-900 to-slate-800 px-8 py-10 text-center text-white shadow-xl">
           <Sparkles className="mx-auto h-8 w-8 text-amber-300" />
